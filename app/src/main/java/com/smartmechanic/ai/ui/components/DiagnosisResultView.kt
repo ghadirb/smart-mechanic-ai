@@ -101,10 +101,11 @@ fun DiagnosisResultView(result: DiagnosisResult, modifier: Modifier = Modifier) 
             }
         }
 
-        if (!result.lowQualityInputNote.isNullOrBlank()) {
+        val lowQualityNote = result.lowQualityInputNote
+        if (!lowQualityNote.isNullOrBlank()) {
             item {
                 SectionCard(title = "ℹ️ نکته کیفیت ورودی") {
-                    Text(result.lowQualityInputNote)
+                    Text(lowQualityNote)
                 }
             }
         }

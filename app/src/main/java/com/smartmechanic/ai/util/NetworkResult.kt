@@ -11,14 +11,16 @@ sealed class AppResult<out T> {
  * انواع خطای قابل‌پیش‌بینی برنامه. هر کدام به یک پیام فارسی مشخص در UI نگاشته می‌شود
  * (رجوع کنید به ErrorMessageMapper) تا برنامه هرگز Crash نکند و کاربر همیشه
  * پیام قابل‌فهم دریافت کند.
+ * توجه: عمداً از Throwable/Exception ارث‌بری نمی‌کند — این کلاس صرفاً یک نوع داده (data type)
+ * برای نمایش خطا در UI است، نه یک Exception که پرتاب (throw) شود.
  */
-sealed class AppError : Exception() {
+sealed class AppError {
     data object NoInternet : AppError()
     data object Timeout : AppError()
     data object MissingApiKey : AppError()
     data class FileTooLarge(val maxSizeMb: Int) : AppError()
     data class UnsupportedFormat(val format: String) : AppError()
     data class InvalidAiResponse(val raw: String? = null) : AppError()
-    data class ApiError(val code: Int?, val message: String?) : AppError()
-    data class Unknown(val cause: Throwable) : AppError()
+    data class ApiError(val code: Int?, val apiMessage: String?) : AppError()
+    data class Unknown(val throwable: Throwable) : AppError()
 }

@@ -118,7 +118,7 @@ class GeminiAIService(
                     if (!response.isSuccessful) {
                         val errorBody = response.errorBody()?.string()
                         return@withTimeout AppResult.Error(
-                            AppError.ApiError(code = response.code(), message = errorBody)
+                            AppError.ApiError(code = response.code(), apiMessage = errorBody)
                         )
                     }
 

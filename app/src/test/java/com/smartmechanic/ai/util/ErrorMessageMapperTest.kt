@@ -37,7 +37,7 @@ class ErrorMessageMapperTest {
 
     @Test
     fun `api error includes code when present`() {
-        val msg = ErrorMessageMapper.toPersianMessage(AppError.ApiError(code = 500, message = "internal"))
+        val msg = ErrorMessageMapper.toPersianMessage(AppError.ApiError(code = 500, apiMessage = "internal"))
         assertThat(msg).contains("500")
     }
 
