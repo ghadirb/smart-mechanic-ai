@@ -80,6 +80,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Material 3 APIs such as TopAppBar are experimental in the pinned
+        // Compose Material 3 version; opt in at module scope so CI treats
+        // their compiler diagnostics as warnings instead of errors.
+        freeCompilerArgs += listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
     }
 
     packaging {
