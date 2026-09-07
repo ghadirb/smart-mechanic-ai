@@ -1,5 +1,6 @@
 package com.smartmechanic.ai.ui.screens.diagnosis.video
 
+import android.Manifest
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -33,6 +34,7 @@ import com.smartmechanic.ai.ui.components.PrivacyConsentDialog
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisUiState
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisViewModel
 import com.smartmechanic.ai.util.MediaFileFactory
+import com.smartmechanic.ai.util.SafeCameraLauncher
 import java.io.File
 
 private fun videoDurationSeconds(context: android.content.Context, file: File): Int {
@@ -60,8 +62,8 @@ fun VideoDiagnosisScreen(
     var validationError by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
-    val cameraFile = remember { MediaFileFactory.newVideoFile(context) }
-    val cameraUri = remember { MediaFileFactory.uriFor(context, cameraFile) }
+    var cameraFile by remember { mutableStateOf<File?>(null) }
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
 
     fun validateAndAccept(file: File) {
         val duration = videoDurationSeconds(context, file)
@@ -77,14 +79,52 @@ fun VideoDiagnosisScreen(
         }
     }
 
-    val takeVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-        if (success) validateAndAccept(cameraFile)
+    val cameraChooserLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            cameraFile?.let { validateAndAccept(it) }
+        }
     }
+
+    fun launchCamera() {
+        val file = MediaFileFactory.newVideoFile(context)
+        val uri = MediaFileFactory.uriFor(context, file)
+        cameraFile = file
+        cameraUri = uri
+
+        when (val launchResult = SafeCameraLauncher.buildVideoCaptureChooser(context, uri)) {
+            is SafeCameraLauncher.LaunchResult.Ready -> {
+                val launched = SafeCameraLauncher.tryLaunch { cameraChooserLauncher.launch(launchResult.chooserIntent) }
+                if (!launched) {
+                    validationError = "برنامه دوربین در دسترس نیست یا اجرا نشد. لطفاً از گزینه گالری استفاده کنید."
+                }
+            }
+            SafeCameraLauncher.LaunchResult.NoCameraAppFound -> {
+                validationError = "هیچ برنامه دوربینی روی گوشی شما یافت نشد. لطفاً از گزینه «گالری» استفاده کنید یا یک برنامه دوربین نصب کنید."
+            }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchCamera()
+        } else {
+            validationError = "برای ضبط ویدئو، اجازه دسترسی به دوربین لازم است."
+        }
+    }
+
     val pickVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             val tempFile = MediaFileFactory.newVideoFile(context)
-            context.contentResolver.openInputStream(it)?.use { input -> tempFile.outputStream().use { out -> input.copyTo(out) } }
-            validateAndAccept(tempFile)
+            runCatching {
+                context.contentResolver.openInputStream(it)?.use { input -> tempFile.outputStream().use { out -> input.copyTo(out) } }
+                validateAndAccept(tempFile)
+            }.onFailure {
+                validationError = "خواندن ویدئوی انتخاب‌شده از گالری ممکن نشد. لطفاً دوباره تلاش کنید."
+            }
         }
     }
 
@@ -108,7 +148,10 @@ fun VideoDiagnosisScreen(
             Text("یک ویدئوی کوتاه (حداکثر ${AIConfig.MAX_VIDEO_DURATION_SECONDS} ثانیه) از موتور، صدای آن، دود اگزوز، لرزش یا قطعه مشکوک ضبط یا انتخاب کنید.")
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { takeVideoLauncher.launch(cameraUri) }, modifier = Modifier.weight(1f)) { Text("🎥 دوربین") }
+                Button(
+                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    modifier = Modifier.weight(1f)
+                ) { Text("🎥 دوربین") }
                 Button(onClick = { pickVideoLauncher.launch("video/*") }, modifier = Modifier.weight(1f)) { Text("🖼️ گالری") }
             }
 

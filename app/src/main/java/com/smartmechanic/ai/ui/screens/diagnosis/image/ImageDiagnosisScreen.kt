@@ -1,17 +1,17 @@
 package com.smartmechanic.ai.ui.screens.diagnosis.image
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +35,7 @@ import com.smartmechanic.ai.ui.components.PrivacyConsentDialog
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisUiState
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisViewModel
 import com.smartmechanic.ai.util.MediaFileFactory
+import com.smartmechanic.ai.util.SafeCameraLauncher
 import java.io.File
 
 @Composable
@@ -48,23 +49,64 @@ fun ImageDiagnosisScreen(
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
     var note by remember { mutableStateOf("") }
     var showConsent by remember { mutableStateOf(false) }
+    var cameraErrorMsg by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
-    val cameraFile = remember { MediaFileFactory.newImageFile(context) }
-    val cameraUri = remember { MediaFileFactory.uriFor(context, cameraFile) }
+    var cameraFile by remember { mutableStateOf<File?>(null) }
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) {
-            pickedFile = cameraFile
-            pickedUri = cameraUri
+    // اجرای اینتنت دوربین (که خودمان با انتخاب‌گر برنامه ساختیم) از طریق کنترکت عمومی
+    // StartActivityForResult تا بتوانیم انتخاب‌گر چند-برنامه‌ای را کنترل کنیم.
+    val cameraChooserLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            cameraFile?.let {
+                pickedFile = it
+                pickedUri = cameraUri
+            }
         }
     }
+
+    fun launchCamera() {
+        val file = MediaFileFactory.newImageFile(context)
+        val uri = MediaFileFactory.uriFor(context, file)
+        cameraFile = file
+        cameraUri = uri
+
+        when (val launchResult = SafeCameraLauncher.buildImageCaptureChooser(context, uri)) {
+            is SafeCameraLauncher.LaunchResult.Ready -> {
+                val launched = SafeCameraLauncher.tryLaunch { cameraChooserLauncher.launch(launchResult.chooserIntent) }
+                if (!launched) {
+                    cameraErrorMsg = "برنامه دوربین در دسترس نیست یا اجرا نشد. لطفاً از گزینه گالری استفاده کنید."
+                }
+            }
+            SafeCameraLauncher.LaunchResult.NoCameraAppFound -> {
+                cameraErrorMsg = "هیچ برنامه دوربینی روی گوشی شما یافت نشد. لطفاً از گزینه «گالری» استفاده کنید یا یک برنامه دوربین (مثلاً از Google Play) نصب کنید."
+            }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchCamera()
+        } else {
+            cameraErrorMsg = "برای گرفتن عکس، اجازه دسترسی به دوربین لازم است."
+        }
+    }
+
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             val tempFile = MediaFileFactory.newImageFile(context)
-            context.contentResolver.openInputStream(it)?.use { input -> tempFile.outputStream().use { out -> input.copyTo(out) } }
-            pickedFile = tempFile
-            pickedUri = Uri.fromFile(tempFile)
+            runCatching {
+                context.contentResolver.openInputStream(it)?.use { input -> tempFile.outputStream().use { out -> input.copyTo(out) } }
+                pickedFile = tempFile
+                pickedUri = Uri.fromFile(tempFile)
+            }.onFailure {
+                cameraErrorMsg = "خواندن فایل انتخاب‌شده از گالری ممکن نشد. لطفاً دوباره تلاش کنید."
+            }
         }
     }
 
@@ -87,10 +129,17 @@ fun ImageDiagnosisScreen(
         ) {
             Text("مثال: موتور، چراغ Check Engine، روغن‌ریزی، دود، لاستیک، ترمز یا داشبورد را عکس بگیرید.")
 
-            Row2(
-                onCamera = { takePictureLauncher.launch(cameraUri) },
-                onGallery = { pickImageLauncher.launch("image/*") }
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    modifier = Modifier.weight(1f)
+                ) { Text("📷 دوربین") }
+                Button(onClick = { pickImageLauncher.launch("image/*") }, modifier = Modifier.weight(1f)) { Text("🖼️ گالری") }
+            }
+
+            cameraErrorMsg?.let {
+                Text(it, color = androidx.compose.ui.graphics.Color.Red)
+            }
 
             pickedUri?.let {
                 Image(
@@ -128,13 +177,5 @@ fun ImageDiagnosisScreen(
         if (state is MediaDiagnosisUiState.Error) {
             ErrorDialog(message = state.message, onDismiss = { viewModel.resetState() })
         }
-    }
-}
-
-@Composable
-private fun Row2(onCamera: () -> Unit, onGallery: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = onCamera, modifier = Modifier.weight(1f)) { Text("📷 دوربین") }
-        Button(onClick = onGallery, modifier = Modifier.weight(1f)) { Text("🖼️ گالری") }
     }
 }

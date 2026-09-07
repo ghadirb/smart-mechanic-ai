@@ -23,6 +23,22 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
+    <!--
+        از اندروید 11 (API 30) به بعد، برنامه‌ها به‌طور پیش‌فرض نمی‌توانند سایر برنامه‌های
+        نصب‌شده (از جمله برنامه‌های دوربین) را ببینند مگر این‌که صراحتاً در <queries> اعلام شوند.
+        بدون این بخش، حتی اگر گوشی چند برنامه دوربین نصب داشته باشد، سیستم ممکن است اعلام کند
+        هیچ برنامه‌ای برای مدیریت درخواست وجود ندارد و باعث ActivityNotFoundException و کرش شود.
+        این دقیقاً همان مشکلی است که با دوربین پیش‌فرض خراب/غیرفعال رخ می‌دهد.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.VIDEO_CAPTURE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".SmartMechanicApp"
         android:allowBackup="false"

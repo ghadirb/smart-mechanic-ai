@@ -50,13 +50,20 @@ fun AudioDiagnosisScreen(
     var note by remember { mutableStateOf("") }
     var showConsent by remember { mutableStateOf(false) }
     var permissionDenied by remember { mutableStateOf(false) }
+    var micErrorMsg by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
-            recordedFile = recorder.startRecording()
-            isRecording = true
-            elapsedSeconds = 0
+            val file = recorder.startRecording()
+            if (file != null) {
+                recordedFile = file
+                isRecording = true
+                elapsedSeconds = 0
+            } else {
+                permissionDenied = false
+                micErrorMsg = "امکان دسترسی به میکروفون وجود ندارد. لطفاً بررسی کنید برنامه دیگری در حال استفاده از میکروفون نباشد و دوباره تلاش کنید."
+            }
         } else {
             permissionDenied = true
         }
@@ -136,6 +143,7 @@ fun AudioDiagnosisScreen(
             if (permissionDenied) {
                 Text("برای ضبط صدا، اجازه دسترسی به میکروفون لازم است.")
             }
+            micErrorMsg?.let { Text(it, color = androidx.compose.ui.graphics.Color.Red) }
         }
 
         if (showConsent) {
