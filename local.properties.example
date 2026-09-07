@@ -1,0 +1,12 @@
+# این فایل را کپی کرده و به نام local.properties ذخیره کنید.
+# local.properties هرگز نباید در Git کامیت شود (در .gitignore قرار دارد).
+
+sdk.dir=/path/to/Android/Sdk
+
+# کلید API سرویس هوش مصنوعی Gemini
+# این مقدار در زمان Build توسط Gradle به BuildConfig تزریق می‌شود
+# و هرگز در سورس‌کد یا مخزن Git ذخیره نمی‌شود.
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# آدرس Backend اختیاری (در صورت استفاده از پروکسی امن به جای تماس مستقیم کلاینت با Gemini)
+BACKEND_BASE_URL=https://your-backend.example.com/

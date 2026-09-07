@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Android Studio
+.idea/
+*.hprof
+.navigation/
+
+# Environment / secrets — هرگز این فایل‌ها نباید کامیت شوند
+.env
+secrets.properties
+apikey.properties

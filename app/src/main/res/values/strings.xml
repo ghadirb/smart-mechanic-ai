@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">مکانیک هوشمند AI</string>
+    <string name="home_subtitle">مشکل خودروت را توضیح بده، عکس بفرست یا صدای موتور و ویدئو ضبط کن.</string>
+
+    <string name="btn_diagnose_text">🔧 تشخیص مشکل</string>
+    <string name="btn_diagnose_image">📷 تحلیل عکس</string>
+    <string name="btn_diagnose_audio">🎙️ تحلیل صدای موتور</string>
+    <string name="btn_diagnose_video">🎥 تحلیل ویدئو</string>
+    <string name="btn_my_cars">🚗 خودروهای من</string>
+    <string name="btn_history">📋 سوابق تشخیص</string>
+
+    <string name="start_review">شروع بررسی</string>
+    <string name="safety_warning">این نتیجه یک ارزیابی هوش مصنوعی است و تشخیص قطعی مکانیکی محسوب نمی‌شود. در صورت وجود علائم خطر، خودرو را متوقف کرده و از ادامه رانندگی خودداری کنید و با تعمیرکار متخصص تماس بگیرید.</string>
+    <string name="audio_safety_hint">برای نتیجه بهتر، تلفن را در فاصله ایمن از قطعات متحرک قرار دهید و به هیچ عنوان دست یا تلفن را نزدیک تسمه، فن یا قطعات متحرک نبرید.</string>
+    <string name="privacy_notice">این فایل برای تحلیل به سرویس هوش مصنوعی ارسال می‌شود. آیا موافقید؟</string>
+
+    <string name="error_no_internet">ارتباط با سرویس هوش مصنوعی برقرار نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="error_api_generic">خطایی در دریافت پاسخ از سرویس هوش مصنوعی رخ داد. لطفاً دوباره تلاش کنید.</string>
+    <string name="error_file_too_large">حجم فایل بیش از حد مجاز است.</string>
+    <string name="error_unsupported_format">فرمت فایل پشتیبانی نمی‌شود.</string>
+    <string name="error_invalid_response">پاسخ دریافتی از هوش مصنوع نامعتبر بود.</string>
+    <string name="error_missing_api_key">کلید سرویس هوش مصنوعی تنظیم نشده است.</string>
+    <string name="error_timeout">زمان پاسخ‌گویی سرویس هوش مصنوعی به پایان رسید. دوباره تلاش کنید.</string>
+
+    <string name="urgency_normal">عادی</string>
+    <string name="urgency_needs_check">نیازمند بررسی</string>
+    <string name="urgency_soon">بهتر است به‌زودی بررسی شود</string>
+    <string name="urgency_serious">جدی</string>
+    <string name="urgency_danger">احتمال خطر / رانندگی توصیه نمی‌شود</string>
+</resources>
