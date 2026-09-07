@@ -1,11 +1,13 @@
 package com.smartmechanic.ai
 
 import android.app.Application
+import com.smartmechanic.ai.config.AIConfig
 import com.smartmechanic.ai.data.local.AppDatabase
 import com.smartmechanic.ai.data.repository.AIService
 import com.smartmechanic.ai.data.repository.CarRepository
 import com.smartmechanic.ai.data.repository.DiagnosisRepository
 import com.smartmechanic.ai.data.repository.GeminiAIService
+import com.smartmechanic.ai.data.repository.ProxyAIService
 
 /**
  * Application class + یک Service Locator ساده (بدون Hilt/Dagger برای سادگی MVP).
@@ -27,6 +29,10 @@ class SmartMechanicApp : Application() {
         database = AppDatabase.getInstance(this)
         carRepository = CarRepository(database.carDao())
         diagnosisRepository = DiagnosisRepository(database.diagnosisDao())
-        aiService = GeminiAIService(applicationContext)
+        aiService = if (AIConfig.isProxyConfigured()) {
+            ProxyAIService(applicationContext)
+        } else {
+            GeminiAIService(applicationContext)
+        }
     }
 }

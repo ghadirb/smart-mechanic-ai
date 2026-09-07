@@ -87,6 +87,59 @@ app/src/main/java/com/smartmechanic/ai/
 
 ---
 
+## 🌐 روش جایگزین: پروکسی رایگان با Google Apps Script + gapgpt.app
+
+اگر نمی‌خواهید حتی کلید Gemini هم داخل اپلیکیشن اندروید (BuildConfig) قرار بگیرد، یا می‌خواهید
+از سرویس `gapgpt.app` (یک پروکسی سازگار با OpenAI که به مدل‌های Gemini/GPT دسترسی می‌دهد)
+استفاده کنید، یک پیاده‌سازی جایگزین آماده است: `ProxyAIService`.
+
+### چطور کار می‌کند؟
+```
+اپ اندروید  →  Web App گوگل اپس‌اسکریپت (رایگان)  →  api.gapgpt.app
+             (کلید gapgpt فقط اینجا نگه‌داری می‌شود)
+```
+کلید gapgpt هرگز در APK یا کد کلاینت قرار نمی‌گیرد؛ فقط در «Script Properties» گوگل
+اپس‌اسکریپت (که کاملاً سمت سرور و خارج از دسترس کاربر نهایی است) ذخیره می‌شود.
+
+### مراحل راه‌اندازی
+1. یک کلید از [gapgpt.app](https://gapgpt.app) بگیرید.
+2. به [script.google.com](https://script.google.com) بروید → **New project**.
+3. محتوای فایل [`backend/apps-script/Code.gs`](backend/apps-script/Code.gs) این مخزن را در
+   ویرایشگر پیست کنید.
+4. از منوی چرخ‌دنده (⚙️ Project Settings) → **Script Properties** → **Add script property**:
+   - نام: `GAPGPT_API_KEY` — مقدار: کلید gapgpt شما
+   - (اختیاری ولی توصیه‌شده) نام: `APP_SECRET` — مقدار: یک رشته تصادفی دلخواه، تا فقط اپ خودتان
+     بتواند از این Web App استفاده کند.
+5. **Deploy → New deployment → نوع: Web app**
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+   - روی **Deploy** بزنید و در صورت نیاز مجوزهای گوگل را تأیید کنید.
+6. آدرس Web app (چیزی شبیه `https://script.google.com/macros/s/AKfycb.../exec`) را کپی کنید.
+7. در `local.properties` مقداردهی کنید:
+   ```properties
+   PROXY_URL=https://script.google.com/macros/s/AKfycb.../exec
+   APP_SECRET=همان رشته‌ای که در مرحله ۴ گذاشتید (اگر گذاشتید)
+   ```
+   با مقداردهی `PROXY_URL`، برنامه به‌طور خودکار (`SmartMechanicApp.kt`) به‌جای `GeminiAIService`
+   از `ProxyAIService` استفاده می‌کند — دیگر نیازی به `GEMINI_API_KEY` نیست.
+
+### چه چیزی از این طریق پشتیبانی می‌شود؟
+| قابلیت | از طریق Apps Script/gapgpt | توضیح |
+|---|---|---|
+| تشخیص متنی | ✅ | `chat/completions` با مدل `gemini-3.6-flash` |
+| تحلیل عکس | ⚠️ Best-effort | با فرمت `image_url` سبک OpenAI Vision ارسال می‌شود؛ چون در مستندات gapgpt صراحتاً تأیید نشده، ممکن است نیاز به تست/تنظیم داشته باشد |
+| تحلیل صدا | ✅ | ابتدا `whisper-1` صدا را به متن تبدیل می‌کند، سپس متن برای تحلیل به `chat/completions` می‌رود |
+| تحلیل ویدئو | ❌ | gapgpt در مستندات فعلی endpoint اختصاصی ویدئو ندارد؛ در این حالت پیام «پشتیبانی نمی‌شود» نمایش داده می‌شود |
+
+> اگر تحلیل ویدئو برایتان ضروری است، ساده‌ترین راه فعلاً همان اتصال مستقیم به Gemini
+> (`GEMINI_API_KEY`، بدون `PROXY_URL`) است، چون Gemini مستقیماً از ویدئو پشتیبانی می‌کند.
+
+### هزینه
+Google Apps Script برای این حجم استفاده (Web App ساده) کاملاً **رایگان** است (در محدوده
+سهمیه روزانه رایگان گوگل). هزینه واقعی فقط مربوط به مصرف کلید gapgpt.app شماست.
+
+---
+
 ## ▶️ اجرای پروژه
 
 1. پروژه را در Android Studio (Hedgehog یا جدیدتر) باز کنید.

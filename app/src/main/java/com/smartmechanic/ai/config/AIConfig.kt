@@ -23,6 +23,17 @@ object AIConfig {
 
     fun isApiKeyConfigured(): Boolean = API_KEY.isNotBlank()
 
+    /**
+     * آدرس Web App گوگل اپس‌اسکریپت که به‌عنوان پروکسی امن جلوی gapgpt.app قرار می‌گیرد.
+     * اگر این مقدار خالی باشد، برنامه مستقیماً (و با API_KEY گوگل Gemini) صحبت می‌کند؛
+     * اگر مقداردهی شود، همه درخواست‌ها از طریق این Backend عبور می‌کنند و کلید gapgpt
+     * هرگز داخل اپ اندروید قرار نمی‌گیرد (رجوع کنید به backend/apps-script/Code.gs).
+     */
+    val PROXY_URL: String = BuildConfig.PROXY_URL
+    val APP_SECRET: String = BuildConfig.APP_SECRET
+
+    fun isProxyConfigured(): Boolean = PROXY_URL.isNotBlank()
+
     // محدودیت‌های مصرف برای کنترل هزینه
     const val MAX_AUDIO_DURATION_SECONDS = 30
     const val MAX_VIDEO_DURATION_SECONDS = 60

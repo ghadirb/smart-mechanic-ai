@@ -26,6 +26,16 @@ val geminiApiKey: String = System.getenv("GEMINI_API_KEY")
 val backendBaseUrl: String = System.getenv("BACKEND_BASE_URL")
     ?: localProperties.getProperty("BACKEND_BASE_URL", "https://generativelanguage.googleapis.com/")
 
+// آدرس Web App گوگل اپس‌اسکریپت (در صورت استفاده از پروکسی رایگان gapgpt.app به‌جای Gemini مستقیم).
+// اگر خالی بماند، برنامه مستقیماً و با geminiApiKey با Gemini صحبت می‌کند.
+val proxyUrl: String = System.getenv("PROXY_URL")
+    ?: localProperties.getProperty("PROXY_URL", "")
+
+// رمز اختیاری اپ که در Script Properties اپس‌اسکریپت هم تنظیم می‌شود (APP_SECRET)
+// تا فقط همین اپ بتواند از Web App عمومی شما استفاده کند.
+val appSecret: String = System.getenv("APP_SECRET")
+    ?: localProperties.getProperty("APP_SECRET", "")
+
 android {
     namespace = "com.smartmechanic.ai"
     compileSdk = 34
@@ -44,6 +54,8 @@ android {
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
         buildConfigField("String", "GEMINI_MODEL_NAME", "\"gemini-1.5-flash\"")
+        buildConfigField("String", "PROXY_URL", "\"$proxyUrl\"")
+        buildConfigField("String", "APP_SECRET", "\"$appSecret\"")
     }
 
     signingConfigs {

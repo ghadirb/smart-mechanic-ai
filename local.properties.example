@@ -3,10 +3,21 @@
 
 sdk.dir=/path/to/Android/Sdk
 
-# کلید API سرویس هوش مصنوعی Gemini
+# کلید API سرویس هوش مصنوعی Gemini (فقط در صورت استفاده مستقیم از Gemini، بدون پروکسی)
 # این مقدار در زمان Build توسط Gradle به BuildConfig تزریق می‌شود
 # و هرگز در سورس‌کد یا مخزن Git ذخیره نمی‌شود.
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# آدرس Backend اختیاری (در صورت استفاده از پروکسی امن به جای تماس مستقیم کلاینت با Gemini)
-BACKEND_BASE_URL=https://your-backend.example.com/
+# آدرس Backend اختیاری Gemini (در صورت استفاده مستقیم از Gemini)
+BACKEND_BASE_URL=https://generativelanguage.googleapis.com/
+
+# -----------------------------------------------------------------------
+# روش جایگزین: پروکسی رایگان گوگل اپس‌اسکریپت + gapgpt.app
+# اگر PROXY_URL مقداردهی شود، برنامه دیگر مستقیماً با Gemini صحبت نمی‌کند و
+# GEMINI_API_KEY بالا نادیده گرفته می‌شود. راهنمای کامل ساخت این آدرس در
+# backend/apps-script/Code.gs و بخش README آمده است.
+# -----------------------------------------------------------------------
+PROXY_URL=
+# رمز اختیاری برای محدود کردن دسترسی به Web App (باید در Script Properties
+# اپس‌اسکریپت هم با نام APP_SECRET تنظیم شود)
+APP_SECRET=
