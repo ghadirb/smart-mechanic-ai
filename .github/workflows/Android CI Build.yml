@@ -1,6 +1,5 @@
 name: Android CI Build
 
-# اجرا در هر push/PR به main، و همچنین امکان اجرای دستی از تب Actions
 on:
   push:
     branches: [ "main" ]
@@ -12,13 +11,8 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
-
-    # کلید Gemini از GitHub Secrets خوانده می‌شود، نه از سورس‌کد یا فایل کامیت‌شده.
-    # برای تنظیم آن: Settings → Secrets and variables → Actions → New repository secret
-    # با نام GEMINI_API_KEY
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
