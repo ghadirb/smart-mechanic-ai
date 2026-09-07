@@ -96,6 +96,29 @@ app/src/main/java/com/smartmechanic/ai/
 
 ---
 
+## 🤖 بیلد خودکار با GitHub Actions
+
+یک workflow آماده در `.github/workflows/android-build.yml` قرار دارد که در هر `push`/`pull request`
+به شاخه `main` (و همچنین به‌صورت دستی از تب Actions) اجرا می‌شود و:
+
+1. JDK 17 و Android SDK را نصب می‌کند.
+2. تست‌های واحد (`./gradlew test`) را اجرا می‌کند.
+3. یک APK نسخه Debug می‌سازد (`./gradlew assembleDebug`).
+4. APK و گزارش تست‌ها را به‌عنوان Artifact قابل‌دانلود در همان اجرای Actions آپلود می‌کند.
+
+### تنظیم لازم قبل از اولین اجرا
+
+چون کلید API نباید در مخزن باشد، باید آن را به‌عنوان یک **GitHub Secret** تعریف کنید:
+
+1. به مخزن در گیت‌هاب بروید → **Settings** → **Secrets and variables** → **Actions**
+2. روی **New repository secret** بزنید.
+3. نام: `GEMINI_API_KEY` — مقدار: کلید Gemini خودتان.
+
+بعد از آن، هر بار که به `main` پوش کنید (یا از تب **Actions** دکمه **Run workflow** را بزنید)،
+بیلد به‌صورت خودکار اجرا می‌شود و می‌توانید APK را از بخش **Artifacts** همان اجرا دانلود کنید.
+
+---
+
 ## ✅ قابلیت‌های پیاده‌سازی‌شده در این نسخه (MVP)
 
 | # | قابلیت | وضعیت |
