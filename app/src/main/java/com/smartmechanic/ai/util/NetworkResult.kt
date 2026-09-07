@@ -19,6 +19,6 @@ sealed class AppError : Exception() {
     data class FileTooLarge(val maxSizeMb: Int) : AppError()
     data class UnsupportedFormat(val format: String) : AppError()
     data class InvalidAiResponse(val raw: String? = null) : AppError()
-    data class ApiError(val code: Int?, val message: String?) : AppError()
-    data class Unknown(val cause: Throwable) : AppError()
+    data class ApiError(val code: Int?, override val message: String?) : AppError()
+    data class Unknown(override val cause: Throwable) : AppError()
 }
