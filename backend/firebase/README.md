@@ -8,7 +8,7 @@
 
 ## راه‌اندازی اولیه
 
-1. در Firebase Console یک پروژهٔ production بسازید و Firestore و **Anonymous Authentication** را فعال کنید.
+1. در Firebase Console یک پروژهٔ production بسازید و Firestore و **Anonymous Authentication** را فعال کنید. پروژهٔ فعلی این مخزن `smart-mechanic-ai-153d3` است.
 2. Firebase CLI را نصب و سپس در پوشهٔ `backend/firebase` اجرا کنید:
 
    ```bash
@@ -22,6 +22,8 @@
 
 3. مقدار `AVALAI_API_KEY` و نام مدل را فقط به‌عنوان Firebase Secret ثبت کنید؛ آن‌ها را در Android، GitHub یا Apps Script قرار ندهید.
 4. پس از deploy، URL تابع `api` را برای اتصال مرحلهٔ بعدی Android نگه دارید.
+
+> Cloud Functions برای deployment تولیدی به طرح Blaze و در نتیجه اتصال حساب پرداخت نیاز دارد. قبل از فعال‌سازی، Budget Alert و سقف هزینه برای Cloud Run تنظیم کنید.
 
 ## مدل اعتبار پیشنهادی اولیه
 
