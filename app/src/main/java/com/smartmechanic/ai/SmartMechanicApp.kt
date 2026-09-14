@@ -1,6 +1,7 @@
 package com.smartmechanic.ai
 
 import android.app.Application
+import com.smartmechanic.ai.auth.FirebaseSession
 import com.smartmechanic.ai.config.AIConfig
 import com.smartmechanic.ai.data.local.AppDatabase
 import com.smartmechanic.ai.data.repository.AIService
@@ -26,6 +27,7 @@ class SmartMechanicApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        FirebaseSession.ensureSignedIn()
         database = AppDatabase.getInstance(this)
         carRepository = CarRepository(database.carDao())
         diagnosisRepository = DiagnosisRepository(database.diagnosisDao())
