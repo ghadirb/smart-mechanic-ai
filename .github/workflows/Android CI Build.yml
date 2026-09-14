@@ -11,10 +11,6 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      PROXY_URL: ${{ secrets.PROXY_URL }}
-      APP_SECRET: ${{ secrets.APP_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
