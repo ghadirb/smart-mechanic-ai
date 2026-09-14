@@ -12,7 +12,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 BACKEND_BASE_URL=https://generativelanguage.googleapis.com/
 
 # -----------------------------------------------------------------------
-# روش جایگزین: پروکسی رایگان گوگل اپس‌اسکریپت + gapgpt.app
+# روش جایگزین: پروکسی رایگان گوگل اپس‌اسکریپت + AvalAI (تست‌شده، از جمله ویدئو)
 # اگر PROXY_URL مقداردهی شود، برنامه دیگر مستقیماً با Gemini صحبت نمی‌کند و
 # GEMINI_API_KEY بالا نادیده گرفته می‌شود. راهنمای کامل ساخت این آدرس در
 # backend/apps-script/Code.gs و بخش README آمده است.

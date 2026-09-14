@@ -25,12 +25,14 @@ import java.util.concurrent.TimeUnit
 
 /**
  * پیاده‌سازی جایگزین AIService که به‌جای تماس مستقیم با Gemini، از یک Web App گوگل
- * اپس‌اسکریپت (پروکسی رایگان) استفاده می‌کند؛ کلید واقعی gapgpt.app هرگز داخل این اپ
+ * اپس‌اسکریپت (پروکسی رایگان روی AvalAI) استفاده می‌کند؛ کلید واقعی هرگز داخل این اپ
  * قرار نمی‌گیرد و فقط سمت سرور (در Script Properties) نگه‌داری می‌شود.
  *
- * محدودیت شناخته‌شده: طبق مستندات فعلی gapgpt.app، فقط چت متنی (با پشتیبانی احتمالی
- * تصویر) و تبدیل گفتار به متن (Whisper) مستند شده‌اند؛ تحلیل ویدئو در این پیاده‌سازی
- * پشتیبانی نمی‌شود (AppError.UnsupportedFormat برگردانده می‌شود).
+ * چون AvalAI همان endpoint بومی generateContent گوگل را proxy می‌کند (نه فقط یک
+ * لایه سازگار با OpenAI)، متن/عکس/ویدئو دقیقاً مثل تماس مستقیم با Gemini کار
+ * می‌کنند؛ فقط صدا (طبق تجربه تست‌شده) از یک مسیر جداگانه سازگار با OpenAI
+ * (chat/completions با input_audio) عبور می‌کند. رجوع کنید به
+ * backend/apps-script/Code.gs.
  */
 class ProxyAIService(
     private val context: Context,
@@ -83,8 +85,19 @@ class ProxyAIService(
     }
 
     override suspend fun analyzeVideo(car: Car?, userNote: String?, videoFile: File): AppResult<DiagnosisResult> {
-        // gapgpt.app طبق مستندات فعلی، endpoint اختصاصی برای تحلیل ویدئو ندارد.
-        return AppResult.Error(AppError.UnsupportedFormat("video (پشتیبانی‌نشده در پیکربندی فعلی پروکسی)"))
+        if (!FileUtils.isSupportedVideo(videoFile)) return AppResult.Error(AppError.UnsupportedFormat(videoFile.extension))
+        FileUtils.validateVideo(videoFile)?.let { return AppResult.Error(it) }
+
+        val prompt = PromptBuilder.buildMediaPrompt(car, userNote, "ویدئوی کوتاه خودرو")
+        return callProxy(
+            ProxyRequest(
+                action = "video",
+                prompt = prompt,
+                videoBase64 = FileUtils.encodeToBase64(videoFile),
+                videoMimeType = FileUtils.mimeTypeForVideo(videoFile),
+                appSecret = secretOrNull()
+            )
+        )
     }
 
     private fun secretOrNull(): String? = AIConfig.APP_SECRET.ifBlank { null }

@@ -87,28 +87,33 @@ app/src/main/java/com/smartmechanic/ai/
 
 ---
 
-## 🌐 روش جایگزین: پروکسی رایگان با Google Apps Script + gapgpt.app
+## 🌐 روش جایگزین: پروکسی رایگان با Google Apps Script + AvalAI
 
-اگر نمی‌خواهید حتی کلید Gemini هم داخل اپلیکیشن اندروید (BuildConfig) قرار بگیرد، یا می‌خواهید
-از سرویس `gapgpt.app` (یک پروکسی سازگار با OpenAI که به مدل‌های Gemini/GPT دسترسی می‌دهد)
-استفاده کنید، یک پیاده‌سازی جایگزین آماده است: `ProxyAIService`.
+اگر نمی‌خواهید حتی کلید Gemini هم داخل اپلیکیشن اندروید (BuildConfig) قرار بگیرد، یک پیاده‌سازی
+جایگزین آماده است: `ProxyAIService`. این معماری از همان روش اثبات‌شده و تست‌شده در پروژه خواهر
+این اپ ([DriveMate-AI](https://github.com/ghadirb/DriveMate-AI)) استفاده می‌کند: به‌جای gapgpt،
+از **[AvalAI](https://avalai.ir)** استفاده می‌شود — چون AvalAI همان endpoint بومی
+`generateContent` گوگل را Proxy می‌کند (نه فقط یک لایه سازگار با OpenAI)، **تحلیل ویدئو هم کامل
+کار می‌کند**، نه فقط متن/عکس/صدا.
 
 ### چطور کار می‌کند؟
 ```
-اپ اندروید  →  Web App گوگل اپس‌اسکریپت (رایگان)  →  api.gapgpt.app
-             (کلید gapgpt فقط اینجا نگه‌داری می‌شود)
+اپ اندروید  →  Web App گوگل اپس‌اسکریپت (رایگان)  →  api.avalai.ir  →  Gemini
+             (کلید AvalAI فقط اینجا نگه‌داری می‌شود)
 ```
-کلید gapgpt هرگز در APK یا کد کلاینت قرار نمی‌گیرد؛ فقط در «Script Properties» گوگل
+کلید AvalAI هرگز در APK یا کد کلاینت قرار نمی‌گیرد؛ فقط در «Script Properties» گوگل
 اپس‌اسکریپت (که کاملاً سمت سرور و خارج از دسترس کاربر نهایی است) ذخیره می‌شود.
 
 ### مراحل راه‌اندازی
-1. یک کلید از [gapgpt.app](https://gapgpt.app) بگیرید.
+1. یک کلید از [avalai.ir](https://avalai.ir) بگیرید.
 2. به [script.google.com](https://script.google.com) بروید → **New project**.
 3. محتوای فایل [`backend/apps-script/Code.gs`](backend/apps-script/Code.gs) این مخزن را در
    ویرایشگر پیست کنید.
 4. از منوی چرخ‌دنده (⚙️ Project Settings) → **Script Properties** → **Add script property**:
-   - نام: `GAPGPT_API_KEY` — مقدار: کلید gapgpt شما
-   - (اختیاری ولی توصیه‌شده) نام: `APP_SECRET` — مقدار: یک رشته تصادفی دلخواه، تا فقط اپ خودتان
+   - نام: `AVALAI_API_KEY` — مقدار: کلید AvalAI شما
+   - نام: `CAR_DIAGNOSIS_MODEL` — مقدار: `gemini-3.1-pro-preview` (یا هر مدلی که حساب AvalAI شما فعال دارد؛ تعویض مدل فقط با تغییر همین مقدار و Deploy مجدد انجام می‌شود — نیازی به نسخه جدید اپ نیست)
+   - (اختیاری، پیش‌فرض `https://api.avalai.ir` است) نام: `AVALAI_BASE_URL`
+   - (اختیاری ولی توصیه‌شده) نام: `APP_SECRET` — یک رشته تصادفی دلخواه، تا فقط اپ خودتان
      بتواند از این Web App استفاده کند.
 5. **Deploy → New deployment → نوع: Web app**
    - Execute as: **Me**
@@ -123,20 +128,23 @@ app/src/main/java/com/smartmechanic/ai/
    با مقداردهی `PROXY_URL`، برنامه به‌طور خودکار (`SmartMechanicApp.kt`) به‌جای `GeminiAIService`
    از `ProxyAIService` استفاده می‌کند — دیگر نیازی به `GEMINI_API_KEY` نیست.
 
-### چه چیزی از این طریق پشتیبانی می‌شود؟
-| قابلیت | از طریق Apps Script/gapgpt | توضیح |
-|---|---|---|
-| تشخیص متنی | ✅ | `chat/completions` با مدل `gemini-3.6-flash` |
-| تحلیل عکس | ⚠️ Best-effort | با فرمت `image_url` سبک OpenAI Vision ارسال می‌شود؛ چون در مستندات gapgpt صراحتاً تأیید نشده، ممکن است نیاز به تست/تنظیم داشته باشد |
-| تحلیل صدا | ✅ | ابتدا `whisper-1` صدا را به متن تبدیل می‌کند، سپس متن برای تحلیل به `chat/completions` می‌رود |
-| تحلیل ویدئو | ❌ | gapgpt در مستندات فعلی endpoint اختصاصی ویدئو ندارد؛ در این حالت پیام «پشتیبانی نمی‌شود» نمایش داده می‌شود |
+> **اگر قبلاً نسخه مبتنی بر gapgpt را دیپلوی کرده بودید:** کافیست محتوای Code.gs را با نسخه
+> بالا جایگزین کنید، Script Property را از `GAPGPT_API_KEY` به `AVALAI_API_KEY` (با کلید AvalAI)
+> تغییر دهید، `CAR_DIAGNOSIS_MODEL` را اضافه کنید، سپس از **Deploy → Manage deployments** نسخه
+> موجود را **Edit** و دوباره **Deploy** کنید. آدرس Web App (`PROXY_URL`) همان قبلی می‌ماند و
+> نیازی به تغییر آن در `local.properties` نیست.
 
-> اگر تحلیل ویدئو برایتان ضروری است، ساده‌ترین راه فعلاً همان اتصال مستقیم به Gemini
-> (`GEMINI_API_KEY`، بدون `PROXY_URL`) است، چون Gemini مستقیماً از ویدئو پشتیبانی می‌کند.
+### چه چیزی از این طریق پشتیبانی می‌شود؟
+| قابلیت | از طریق Apps Script/AvalAI | توضیح |
+|---|---|---|
+| تشخیص متنی | ✅ | endpoint بومی `generateContent` گوگل |
+| تحلیل عکس | ✅ | همان `generateContent` با `inlineData` — دقیقاً مثل تماس مستقیم با Gemini |
+| تحلیل ویدئو | ✅ | همان `generateContent` با `inlineData` — هم تصویر و هم صدای ویدئو بررسی می‌شود |
+| تحلیل صدا | ✅ | طبق تجربه تست‌شده، از مسیر جداگانه `chat/completions` با فرمت `input_audio` (سازگار با OpenAI) عبور می‌کند که قابل‌اطمینان‌تر است |
 
 ### هزینه
 Google Apps Script برای این حجم استفاده (Web App ساده) کاملاً **رایگان** است (در محدوده
-سهمیه روزانه رایگان گوگل). هزینه واقعی فقط مربوط به مصرف کلید gapgpt.app شماست.
+سهمیه روزانه رایگان گوگل). هزینه واقعی فقط مربوط به مصرف کلید AvalAI شماست.
 
 ---
 

@@ -9,11 +9,11 @@ import com.smartmechanic.ai.BuildConfig
  */
 object AIConfig {
 
-    /** نام مدل پیش‌فرض برای تحلیل‌های سبک (متن، سوالات ساده) */
+    /** نام مدل پیش‌فرض برای تحلیل‌های سبک (متن، سوالات ساده) — فقط در مسیر Gemini مستقیم استفاده می‌شود. */
     val LIGHT_MODEL_NAME: String = BuildConfig.GEMINI_MODEL_NAME
 
-    /** مدل قوی‌تر برای تحلیل‌های پیچیده‌تر (تصویر/صدا/ویدئو یا موارد نامشخص) */
-    const val HEAVY_MODEL_NAME: String = "gemini-1.5-pro"
+    /** مدل قوی‌تر برای تحلیل‌های چندوجهی (تصویر/صدا/ویدئو) — فقط در مسیر Gemini مستقیم. */
+    const val HEAVY_MODEL_NAME: String = "gemini-3.1-pro-preview"
 
     /** آدرس پایه API. در صورت استفاده از Backend واسط به جای تماس مستقیم، این مقدار عوض می‌شود. */
     val BASE_URL: String = BuildConfig.BACKEND_BASE_URL
@@ -37,9 +37,9 @@ object AIConfig {
     // محدودیت‌های مصرف برای کنترل هزینه
     const val MAX_AUDIO_DURATION_SECONDS = 30
     const val MAX_VIDEO_DURATION_SECONDS = 60
-    const val MAX_IMAGE_SIZE_BYTES = 8L * 1024 * 1024        // 8MB
-    const val MAX_AUDIO_SIZE_BYTES = 15L * 1024 * 1024       // 15MB
-    const val MAX_VIDEO_SIZE_BYTES = 50L * 1024 * 1024       // 50MB (بعد از فشرده‌سازی)
+    const val MAX_IMAGE_SIZE_BYTES = 10L * 1024 * 1024       // 10MB
+    const val MAX_AUDIO_SIZE_BYTES = 8L * 1024 * 1024        // 8MB — هماهنگ با حد تست‌شده پروکسی
+    const val MAX_VIDEO_SIZE_BYTES = 25L * 1024 * 1024       // 25MB — Base64 آن حدود ۳۳MB، زیر سقف Apps Script
     const val MAX_IMAGE_DIMENSION_PX = 1280
 
     const val REQUEST_TIMEOUT_SECONDS = 60L

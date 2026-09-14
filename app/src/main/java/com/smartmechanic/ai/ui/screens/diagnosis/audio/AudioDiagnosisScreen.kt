@@ -1,10 +1,12 @@
 package com.smartmechanic.ai.ui.screens.diagnosis.audio
 
 import android.Manifest
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +35,8 @@ import com.smartmechanic.ai.ui.components.SafetyWarningBanner
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisUiState
 import com.smartmechanic.ai.ui.screens.diagnosis.MediaDiagnosisViewModel
 import com.smartmechanic.ai.util.AudioRecorderHelper
+import com.smartmechanic.ai.util.FileUtils
+import com.smartmechanic.ai.util.MediaFileFactory
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -51,7 +55,40 @@ fun AudioDiagnosisScreen(
     var showConsent by remember { mutableStateOf(false) }
     var permissionDenied by remember { mutableStateOf(false) }
     var micErrorMsg by remember { mutableStateOf<String?>(null) }
+    var pickErrorMsg by remember { mutableStateOf<String?>(null) }
+    var isUploaded by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
+
+    val pickAudioLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val tempFile = MediaFileFactory.newAudioFile(context)
+            runCatching {
+                context.contentResolver.openInputStream(it)?.use { input ->
+                    tempFile.outputStream().use { out -> input.copyTo(out) }
+                }
+            }.onFailure {
+                pickErrorMsg = "خواندن فایل صوتی انتخاب‌شده ممکن نشد. لطفاً دوباره تلاش کنید."
+                return@rememberLauncherForActivityResult
+            }
+
+            if (!FileUtils.isSupportedAudio(tempFile)) {
+                pickErrorMsg = "فرمت این فایل صوتی پشتیبانی نمی‌شود (فرمت‌های مجاز: mp3, wav, m4a, ogg, aac)."
+                tempFile.delete()
+                return@rememberLauncherForActivityResult
+            }
+            val sizeError = FileUtils.validateAudio(tempFile)
+            if (sizeError != null) {
+                pickErrorMsg = "حجم فایل صوتی بیش از حد مجاز است. لطفاً فایل کوچک‌تری انتخاب کنید."
+                tempFile.delete()
+                return@rememberLauncherForActivityResult
+            }
+
+            pickErrorMsg = null
+            recordedFile = tempFile
+            isUploaded = true
+            elapsedSeconds = 0
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
@@ -59,6 +96,7 @@ fun AudioDiagnosisScreen(
             if (file != null) {
                 recordedFile = file
                 isRecording = true
+                isUploaded = false
                 elapsedSeconds = 0
             } else {
                 permissionDenied = false
@@ -106,10 +144,18 @@ fun AudioDiagnosisScreen(
             )
 
             if (!isRecording && recordedFile == null) {
-                Button(
-                    onClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("🎙️ شروع ضبط (حداکثر ${AIConfig.MAX_AUDIO_DURATION_SECONDS} ثانیه)") }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("🎙️ شروع ضبط (حداکثر ${AIConfig.MAX_AUDIO_DURATION_SECONDS} ثانیه)") }
+
+                    Text("یا فایل صوتی از قبل ضبط‌شده را از گوشی انتخاب کنید:")
+                    Button(
+                        onClick = { pickAudioLauncher.launch("audio/*") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("📁 ارسال فایل صوتی از گوشی") }
+                }
             }
 
             if (isRecording) {
@@ -124,7 +170,10 @@ fun AudioDiagnosisScreen(
             }
 
             recordedFile?.let { file ->
-                Text("صدا ضبط شد (${elapsedSeconds} ثانیه). آماده ارسال برای تحلیل.")
+                Text(
+                    if (isUploaded) "فایل صوتی انتخاب شد (${file.length() / 1024} کیلوبایت). آماده ارسال برای تحلیل."
+                    else "صدا ضبط شد (${elapsedSeconds} ثانیه). آماده ارسال برای تحلیل."
+                )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
@@ -135,10 +184,17 @@ fun AudioDiagnosisScreen(
                     Text("ارسال برای تحلیل")
                 }
                 Button(
-                    onClick = { recordedFile?.delete(); recordedFile = null; elapsedSeconds = 0 },
+                    onClick = {
+                        recordedFile?.delete()
+                        recordedFile = null
+                        isUploaded = false
+                        elapsedSeconds = 0
+                    },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("ضبط مجدد") }
+                ) { Text(if (isUploaded) "انتخاب فایل دیگر" else "ضبط مجدد") }
             }
+
+            pickErrorMsg?.let { Text(it, color = androidx.compose.ui.graphics.Color.Red) }
 
             if (permissionDenied) {
                 Text("برای ضبط صدا، اجازه دسترسی به میکروفون لازم است.")

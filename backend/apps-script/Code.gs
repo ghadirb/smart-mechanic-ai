@@ -1,33 +1,34 @@
 /**
  * مکانیک هوشمند AI — Backend واسط روی Google Apps Script
  * ---------------------------------------------------------
- * این اسکریپت به‌عنوان یک Web App رایگان عمل می‌کند که کلید gapgpt.app را
- * سمت سرور نگه می‌دارد و هرگز آن را به کلاینت (اپلیکیشن اندروید) نمی‌فرستد.
- * اپ اندروید فقط به این آدرس Web App درخواست می‌فرستد، نه مستقیماً به gapgpt.app.
+ * این نسخه بر پایه معماری اثبات‌شده و تست‌شده در پروژه DriveMate-AI ساخته شده:
+ * به‌جای gapgpt، از AvalAI (یک پروکسی سازگار با فرمت بومی Gemini) استفاده می‌کند.
+ * مزیت اصلی نسبت به نسخه قبلی: چون AvalAI همان endpoint بومی
+ * generateContent گوگل را proxy می‌کند، تحلیل ویدئو هم کامل کار می‌کند
+ * (نه فقط متن، عکس و صدا).
+ *
+ * کلید API فقط سمت سرور (Script Properties) نگه‌داری می‌شود و هرگز به کلاینت
+ * اندروید فرستاده نمی‌شود.
  *
  * نصب:
- * 1) https://script.google.com → پروژه جدید بسازید → این فایل را در Code.gs پیست کنید.
- * 2) از منوی چرخ‌دنده (Project Settings) → Script Properties → یک Property با نام
- *    GAPGPT_API_KEY و مقدار کلید gapgpt.app خودتان اضافه کنید. (هرگز کلید را
- *    مستقیم داخل کد ننویسید.)
- * 3) Deploy → New deployment → نوع: Web app
- *      - Execute as: Me
- *      - Who has access: Anyone
- * 4) آدرس Web app (چیزی شبیه .../exec) را کپی کنید و در local.properties برنامه
- *    اندروید به‌عنوان PROXY_URL قرار دهید.
+ * 1) https://script.google.com → پروژه جدید → این فایل را در Code.gs پیست کنید.
+ * 2) از AvalAI (https://avalai.ir) یک کلید API بگیرید.
+ * 3) Project Settings → Script Properties → این مقدارها را اضافه کنید:
+ *      - AVALAI_API_KEY  = کلید AvalAI شما
+ *      - CAR_DIAGNOSIS_MODEL = gemini-3.1-pro-preview   (یا هر مدل دیگری که حساب شما فعال دارد)
+ *      - AVALAI_BASE_URL = https://api.avalai.ir         (اختیاری، این مقدار پیش‌فرض است)
+ *      - APP_SECRET      = یک رشته دلخواه (اختیاری، برای محدود کردن دسترسی)
+ * 4) Deploy → New deployment → Web app → Execute as: Me، Who has access: Anyone
+ * 5) آدرس .../exec را در local.properties اپ اندروید به‌عنوان PROXY_URL بگذارید.
  *
- * توجه امنیتی: چون Access روی "Anyone" است، هر کسی که آدرس را داشته باشد می‌تواند
- * از سهمیه کلید gapgpt شما استفاده کند. برای محدودسازی بیشتر می‌توانید یک رمز
- * ساده (APP_SECRET) در Script Properties تعریف و از کلاینت در هر درخواست بفرستید
- * (کد زیر از این الگو پشتیبانی می‌کند — به APP_SECRET_CHECK مراجعه کنید).
+ * برای تعویض مدل در آینده، فقط CAR_DIAGNOSIS_MODEL را اینجا تغییر دهید و دوباره
+ * Deploy کنید — نیازی به انتشار نسخه جدید اپلیکیشن نیست.
  */
-
-var GAPGPT_BASE_URL = "https://api.gapgpt.app/v1";
 
 var DIAGNOSIS_SYSTEM_PROMPT = [
   "تو یک دستیار هوشمند عیب‌یابی خودرو هستی، نه تعمیرکار قطعی.",
   "وظیفه تو تحلیل اطلاعات ارائه‌شده توسط کاربر شامل مشخصات خودرو،",
-  "توضیح علائم، تصویر یا صدا و ارائه احتمالات منطقی است.",
+  "توضیح علائم، تصویر، صدا یا ویدئو و ارائه احتمالات منطقی است.",
   "",
   "قوانین:",
   "1. هرگز بدون شواهد کافی خرابی قطعی اعلام نکن.",
@@ -36,9 +37,10 @@ var DIAGNOSIS_SYSTEM_PROMPT = [
   "4. برای موارد ایمنی (ترمز، فرمان، سوخت، برق فشار بالا، داغ‌کردن شدید، دود شدید،",
   "   آتش‌سوزی، نشتی شدید) احتیاط را در اولویت مطلق قرار بده.",
   "5. پاسخ را به زبان فارسی ساده ارائه کن.",
-  "6. اگر کیفیت تصویر/صدا کافی نیست، این موضوع را صراحتاً اعلام کن.",
+  "6. اگر کیفیت تصویر/صدا/ویدئو کافی نیست، این موضوع را صراحتاً اعلام کن.",
   "7. هیچ درصد احتمال ساختگی تولید نکن؛ از «محتمل‌تر»، «احتمال متوسط»، «نیازمند بررسی» استفاده کن.",
-  "8. خروجی را فقط و فقط به‌صورت یک شیء JSON زیر و بدون هیچ متن اضافه برگردان:",
+  "8. برای ویدئو، هم تصویر و هم صدای داخل آن را بررسی کن، نه فقط تبدیل گفتار به متن.",
+  "9. خروجی را فقط و فقط به‌صورت یک شیء JSON زیر و بدون هیچ متن اضافه، بدون ```json برگردان:",
   "{",
   '  "summary": "خلاصه ساده مشکل به فارسی",',
   '  "possibleCauses": [{"title": "...", "likelihood": "LOW|MEDIUM|HIGH"}],',
@@ -54,61 +56,108 @@ var DIAGNOSIS_SYSTEM_PROMPT = [
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
-    var apiKey = PropertiesService.getScriptProperties().getProperty("GAPGPT_API_KEY");
-    if (!apiKey) {
-      return jsonResponse({ success: false, error: "GAPGPT_API_KEY در Script Properties تنظیم نشده است." });
-    }
+    var props = PropertiesService.getScriptProperties();
 
-    // بررسی اختیاری رمز اپ (در صورت تعریف APP_SECRET در Script Properties)
-    var appSecret = PropertiesService.getScriptProperties().getProperty("APP_SECRET");
+    var appSecret = props.getProperty("APP_SECRET");
     if (appSecret && body.appSecret !== appSecret) {
       return jsonResponse({ success: false, error: "دسترسی غیرمجاز." });
     }
 
+    var apiKey = props.getProperty("AVALAI_API_KEY");
+    if (!apiKey) {
+      return jsonResponse({ success: false, error: "AVALAI_API_KEY در Script Properties تنظیم نشده است." });
+    }
+    var model = props.getProperty("CAR_DIAGNOSIS_MODEL") || "gemini-3.1-pro-preview";
+    var baseUrl = (props.getProperty("AVALAI_BASE_URL") || "https://api.avalai.ir").replace(/\/$/, "");
+
     var action = body.action;
-    var rawModelText;
+    var raw;
 
     if (action === "text") {
-      rawModelText = callChatCompletion(apiKey, body.prompt, null, null);
+      raw = callGeminiNative_(baseUrl, apiKey, model, body.prompt, null, null);
     } else if (action === "image") {
-      rawModelText = callChatCompletion(apiKey, body.prompt, body.imageBase64, body.imageMimeType);
+      raw = callGeminiNative_(baseUrl, apiKey, model, body.prompt, body.imageBase64, body.imageMimeType);
+    } else if (action === "video") {
+      raw = callGeminiNative_(baseUrl, apiKey, model, body.prompt, body.videoBase64, body.videoMimeType);
     } else if (action === "audio") {
-      var transcript = callWhisperTranscription(apiKey, body.audioBase64, body.audioMimeType);
-      var combinedPrompt = body.prompt + "\n\nمتن پیاده‌سازی‌شده از صدای ضبط‌شده کاربر:\n" + transcript;
-      rawModelText = callChatCompletion(apiKey, combinedPrompt, null, null);
+      // مطابق تجربه تست‌شده در DriveMate-AI: مسیر صوت به‌طور جداگانه و از طریق
+      // فرمت سازگار با OpenAI (input_audio) قابل‌اطمینان‌تر است.
+      raw = callChatCompletionAudio_(baseUrl, apiKey, model, body.prompt, body.audioBase64, body.audioMimeType);
     } else {
       return jsonResponse({ success: false, error: "action نامعتبر است." });
     }
 
-    return jsonResponse({ success: true, raw: rawModelText });
+    return jsonResponse({ success: true, raw: raw });
   } catch (err) {
-    return jsonResponse({ success: false, error: String(err) });
+    return jsonResponse({ success: false, error: String(err && err.message || err) });
   }
 }
 
+/** برای بررسی زنده‌بودن آدرس از داخل مرورگر؛ تحلیل واقعی فقط با POST انجام می‌شود. */
+function doGet() {
+  return jsonResponse({ success: true, service: "smart-mechanic-ai-proxy" });
+}
+
 /**
- * فراخوانی chat/completions با پشتیبانی اختیاری از یک تصویر (فرمت سازگار با OpenAI Vision).
- * توجه: پشتیبانی از تصویر برای مدل gemini-3.6-flash از طریق gapgpt به‌صورت رسمی در
- * مستندات موجود ذکر نشده است؛ این بخش به‌صورت best-effort پیاده شده — اگر مدل تصویر را
- * نپذیرفت، action="image" را موقتاً غیرفعال کرده و فقط از "text"/"audio" استفاده کنید.
+ * فراخوانی endpoint بومی Gemini از طریق AvalAI برای متن/عکس/ویدئو.
+ * (این همان endpoint اصلی generateContent گوگل است؛ AvalAI فقط آن را proxy می‌کند،
+ * پس تصویر و ویدئو دقیقاً مثل تماس مستقیم با Gemini کار می‌کنند.)
  */
-function callChatCompletion(apiKey, promptText, imageBase64, imageMimeType) {
-  var userContent;
-  if (imageBase64) {
-    userContent = [
-      { type: "text", text: promptText },
-      { type: "image_url", image_url: { url: "data:" + (imageMimeType || "image/jpeg") + ";base64," + imageBase64 } }
-    ];
-  } else {
-    userContent = promptText;
+function callGeminiNative_(baseUrl, apiKey, model, promptText, mediaBase64, mediaMimeType) {
+  var parts = [{ text: promptText }];
+  if (mediaBase64) {
+    parts.push({ inlineData: { mimeType: mediaMimeType, data: mediaBase64 } });
   }
 
   var payload = {
-    model: "gemini-3.6-flash",
+    contents: [{ role: "user", parts: parts }],
+    systemInstruction: { parts: [{ text: DIAGNOSIS_SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 2048,
+      responseMimeType: "application/json"
+    }
+  };
+
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    headers: { "x-goog-api-key": apiKey },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  var endpoint = baseUrl + "/v1beta/models/" + encodeURIComponent(model) + ":generateContent";
+  var response = UrlFetchApp.fetch(endpoint, options);
+  if (response.getResponseCode() >= 300) {
+    throw new Error("AvalAI HTTP " + response.getResponseCode() + ": " + response.getContentText().slice(0, 500));
+  }
+
+  var parsed = JSON.parse(response.getContentText());
+  var candidateParts = (((parsed.candidates || [])[0] || {}).content || {}).parts || [];
+  var text = candidateParts.map(function (p) { return p.text || ""; }).join("");
+  text = String(text).trim();
+  if (!text) throw new Error("پاسخ تحلیلی از مدل دریافت نشد.");
+  return text;
+}
+
+/** فراخوانی chat/completions سازگار با OpenAI برای تحلیل صدا (فرمت input_audio). */
+function callChatCompletionAudio_(baseUrl, apiKey, model, promptText, audioBase64, audioMimeType) {
+  var format = audioFormat_(audioMimeType);
+  var payload = {
+    model: model,
     messages: [
       { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
-      { role: "user", content: userContent }
-    ]
+      {
+        role: "user",
+        content: [
+          { type: "text", text: promptText },
+          { type: "input_audio", input_audio: { data: audioBase64, format: format } }
+        ]
+      }
+    ],
+    temperature: 0.3,
+    max_tokens: 2048
   };
 
   var options = {
@@ -119,37 +168,24 @@ function callChatCompletion(apiKey, promptText, imageBase64, imageMimeType) {
     muteHttpExceptions: true
   };
 
-  var response = UrlFetchApp.fetch(GAPGPT_BASE_URL + "/chat/completions", options);
-  var parsed = JSON.parse(response.getContentText());
-  if (parsed.error) {
-    throw new Error("gapgpt error: " + JSON.stringify(parsed.error));
+  var response = UrlFetchApp.fetch(baseUrl + "/v1/chat/completions", options);
+  if (response.getResponseCode() >= 300) {
+    throw new Error("AvalAI HTTP " + response.getResponseCode() + ": " + response.getContentText().slice(0, 500));
   }
-  return parsed.choices[0].message.content;
+
+  var parsed = JSON.parse(response.getContentText());
+  var text = String((((parsed.choices || [])[0] || {}).message || {}).content || "").trim();
+  if (!text) throw new Error("پاسخ تحلیلی از مدل دریافت نشد.");
+  return text;
 }
 
-/** ارسال فایل صوتی به whisper-1 برای تبدیل به متن (STT). */
-function callWhisperTranscription(apiKey, audioBase64, audioMimeType) {
-  var bytes = Utilities.base64Decode(audioBase64);
-  var blob = Utilities.newBlob(bytes, audioMimeType || "audio/mp4", "audio.m4a");
-
-  var payload = {
-    model: "whisper-1",
-    file: blob
-  };
-
-  var options = {
-    method: "post",
-    headers: { Authorization: "Bearer " + apiKey },
-    payload: payload,
-    muteHttpExceptions: true
-  };
-
-  var response = UrlFetchApp.fetch(GAPGPT_BASE_URL + "/audio/transcriptions", options);
-  var parsed = JSON.parse(response.getContentText());
-  if (parsed.error) {
-    throw new Error("gapgpt whisper error: " + JSON.stringify(parsed.error));
-  }
-  return parsed.text;
+/** تبدیل mimeType اندروید به فرمت کوتاهی که input_audio انتظار دارد. */
+function audioFormat_(mimeType) {
+  var subtype = String(mimeType || "audio/mp4").toLowerCase().split(";")[0].split("/")[1] || "mp4";
+  if (subtype === "mpeg" || subtype === "mpga") return "mp3";
+  // MediaRecorder اندروید یک جریان AAC داخل قالب MPEG-4 می‌سازد؛ نام رایج تبادل آن m4a است.
+  if (subtype === "mp4" || subtype === "x-m4a") return "m4a";
+  return subtype;
 }
 
 function jsonResponse(obj) {

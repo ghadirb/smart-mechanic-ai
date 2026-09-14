@@ -7,12 +7,14 @@ import com.google.gson.annotations.SerializedName
  * (رجوع کنید به backend/apps-script/Code.gs).
  */
 data class ProxyRequest(
-    @SerializedName("action") val action: String, // "text" | "image" | "audio"
+    @SerializedName("action") val action: String, // "text" | "image" | "audio" | "video"
     @SerializedName("prompt") val prompt: String,
     @SerializedName("imageBase64") val imageBase64: String? = null,
     @SerializedName("imageMimeType") val imageMimeType: String? = null,
     @SerializedName("audioBase64") val audioBase64: String? = null,
     @SerializedName("audioMimeType") val audioMimeType: String? = null,
+    @SerializedName("videoBase64") val videoBase64: String? = null,
+    @SerializedName("videoMimeType") val videoMimeType: String? = null,
     @SerializedName("appSecret") val appSecret: String? = null
 )
 

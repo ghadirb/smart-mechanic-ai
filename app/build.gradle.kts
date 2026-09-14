@@ -53,7 +53,7 @@ android {
         // نه به صورت رشته‌ی ثابت قابل مشاهده در سورس یا منابع.
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
-        buildConfigField("String", "GEMINI_MODEL_NAME", "\"gemini-1.5-flash\"")
+        buildConfigField("String", "GEMINI_MODEL_NAME", "\"gemini-3.6-flash\"")
         buildConfigField("String", "PROXY_URL", "\"$proxyUrl\"")
         buildConfigField("String", "APP_SECRET", "\"$appSecret\"")
     }
