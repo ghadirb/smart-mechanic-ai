@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // The credit ledger is server-owned. Mobile clients must access it only
+    // through the authenticated HTTPS API.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

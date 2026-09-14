@@ -1,0 +1,19 @@
+{
+  "name": "smart-mechanic-credit-service",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": { "node": "22" },
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions,firestore",
+    "deploy": "firebase deploy --only functions,firestore:rules",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.4.0",
+    "firebase-functions": "^7.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
