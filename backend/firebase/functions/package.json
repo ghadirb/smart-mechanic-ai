@@ -5,8 +5,8 @@
   "engines": { "node": "22" },
   "scripts": {
     "build": "tsc",
-    "serve": "npm run build && firebase emulators:start --only functions,firestore",
-    "deploy": "firebase deploy --only functions,firestore:rules",
+    "serve": "npm run build && npx firebase emulators:start --only functions,firestore",
+    "deploy": "npx firebase deploy --only functions,firestore:rules",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -14,6 +14,7 @@
     "firebase-functions": "^7.3.2"
   },
   "devDependencies": {
+    "firebase-tools": "^15.30.1",
     "typescript": "^5.9.3"
   }
 }

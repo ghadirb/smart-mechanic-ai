@@ -1,0 +1,46 @@
+name: Deploy Firebase Functions
+
+# دیپلوی خودکار بک‌اند اعتباری Firebase (backend/firebase/functions).
+# احراز هویت با Workload Identity Federation انجام می‌شود، نه کلید JSON —
+# چون این پروژه ساخت کلید Service Account را با Org Policy مسدود کرده است.
+# راهنمای کامل تنظیم WORKLOAD_IDENTITY_PROVIDER / FIREBASE_SA_EMAIL:
+# backend/firebase/README.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/firebase/functions/**"
+      - "backend/firebase/firebase.json"
+      - "backend/firebase/firestore.rules"
+      - ".github/workflows/deploy-firebase-functions.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: smart-mechanic-ai-153d3
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.FIREBASE_SA_EMAIL }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install function dependencies
+        working-directory: backend/firebase/functions
+        run: npm ci
+
+      - name: Deploy to Firebase
+        working-directory: backend/firebase/functions
+        run: npm run deploy -- --non-interactive
