@@ -18,6 +18,7 @@ sealed class AppError {
     data object NoInternet : AppError()
     data object Timeout : AppError()
     data object MissingApiKey : AppError()
+    data object InsufficientCredits : AppError()
     data class FileTooLarge(val maxSizeMb: Int) : AppError()
     data class UnsupportedFormat(val format: String) : AppError()
     data class InvalidAiResponse(val raw: String? = null) : AppError()

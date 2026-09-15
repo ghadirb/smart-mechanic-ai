@@ -87,6 +87,45 @@ app/src/main/java/com/smartmechanic/ai/
 
 ---
 
+## 💳 روش پیشنهادی برای نسخه تجاری: بک‌اند اعتباری Firebase (بسته‌های اشتراک/اعتبار)
+
+این مسیر بالاترین اولویت را در `SmartMechanicApp.kt` دارد (Firebase > Apps Script > Gemini مستقیم)
+و برخلاف دو روش قبلی، **مصرف هر کاربر را هم کنترل می‌کند** — یعنی زیرساخت لازم برای فروش
+بسته‌های اعتباری (credit_20/50/150) همین‌جاست.
+
+### چطور کار می‌کند؟
+```
+اپ اندروید  →  (Firebase Anonymous Auth: هویت کاربر)  →  Cloud Function  →  AvalAI  →  Gemini
+                                                      (کسر اتمیک اعتبار در Firestore)
+```
+- هویت کاربر با ورود ناشناس Firebase تایید می‌شود؛ کاربر نیازی به ثبت‌نام ندارد.
+- هر درخواست پیش از تماس با هوش مصنوعی، اعتبار لازم را (طبق جدول پایین) از موجودی کاربر در
+  Firestore کم می‌کند؛ اگر تماس با خطا مواجه شود، اعتبار خودکار برگردانده می‌شود.
+- کلید واقعی AvalAI فقط به‌صورت **Firebase Secret** (نه در کد، نه در APK) نگه‌داری می‌شود.
+
+### هزینه هر عملیات (قابل تغییر در `backend/firebase/functions/src/creditPolicy.ts`)
+| نوع تشخیص | اعتبار مصرفی |
+|---|---:|
+| متن | 1 |
+| عکس | 3 |
+| صوت | 5 |
+| ویدیو | 12 |
+
+### مراحل راه‌اندازی
+راهنمای کامل (ساخت پروژه Firebase، فعال‌سازی Anonymous Auth و Firestore، تنظیم Secret، و
+`npm run deploy`) در [`backend/firebase/README.md`](backend/firebase/README.md) آمده است.
+پس از دیپلوی، فقط کافی است URL چاپ‌شده را در `local.properties` (یا GitHub Secret برای CI)
+با نام `FIREBASE_FUNCTION_BASE_URL` قرار دهید — نیازی به تغییر کد نیست.
+
+> ⚠️ Cloud Functions تولیدی به طرح **Blaze** (پرداختی، با سطح رایگان سخاوتمندانه) نیاز دارد.
+> پیش از فعال‌سازی، حتماً Budget Alert در Google Cloud Console تنظیم کنید.
+
+> 🛒 **بسته‌های خرید (`credit_20`/`credit_50`/`credit_150`) و تایید پرداخت از طریق Cafe Bazaar/Myket**
+> هنوز نیازمند اتصال حساب توسعه‌دهنده و محصولات واقعی هر فروشگاه هستند — این بخش در
+> `backend/firebase/README.md` به‌عنوان مرحله بعدی مستند شده است.
+
+---
+
 ## 🌐 روش جایگزین: پروکسی رایگان با Google Apps Script + AvalAI
 
 اگر نمی‌خواهید حتی کلید Gemini هم داخل اپلیکیشن اندروید (BuildConfig) قرار بگیرد، یک پیاده‌سازی

@@ -13,6 +13,8 @@ object ErrorMessageMapper {
             "زمان پاسخ‌گویی سرویس هوش مصنوعی به پایان رسید. لطفاً دوباره تلاش کنید."
         is AppError.MissingApiKey ->
             "کلید سرویس هوش مصنوعی تنظیم نشده است. لطفاً با پشتیبانی تماس بگیرید."
+        is AppError.InsufficientCredits ->
+            "اعتبار حساب شما کافی نیست. لطفاً از بخش خرید اعتبار، بسته‌ی جدیدی تهیه کنید."
         is AppError.FileTooLarge ->
             "حجم فایل بیش از حد مجاز (حدود ${error.maxSizeMb} مگابایت) است. لطفاً فایل کوچک‌تری انتخاب کنید."
         is AppError.UnsupportedFormat ->

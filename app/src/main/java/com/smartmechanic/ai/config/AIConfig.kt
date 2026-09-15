@@ -34,6 +34,15 @@ object AIConfig {
 
     fun isProxyConfigured(): Boolean = PROXY_URL.isNotBlank()
 
+    /**
+     * آدرس Cloud Function بک‌اند اعتباری Firebase (رجوع کنید به backend/firebase).
+     * این بک‌اند بالاترین اولویت را دارد چون تنها گزینه‌ای است که مصرف را به‌ازای
+     * هر کاربر (از طریق Firebase Anonymous Auth) کنترل و در Firestore ثبت می‌کند.
+     */
+    val FUNCTION_BASE_URL: String = BuildConfig.FIREBASE_FUNCTION_BASE_URL
+
+    fun isFirebaseBackendConfigured(): Boolean = FUNCTION_BASE_URL.isNotBlank()
+
     // محدودیت‌های مصرف برای کنترل هزینه
     const val MAX_AUDIO_DURATION_SECONDS = 30
     const val MAX_VIDEO_DURATION_SECONDS = 60

@@ -39,6 +39,14 @@ val proxyUrl: String = System.getenv("PROXY_URL")
 val appSecret: String = System.getenv("APP_SECRET")
     ?: localProperties.getProperty("APP_SECRET", "")
 
+// آدرس Cloud Function بک‌اند اعتباری Firebase (برای دیدن نحوه دیپلوی، به
+// backend/firebase/README.md مراجعه کنید). بعد از هر بار «npm run deploy»،
+// این URL توسط Firebase CLI چاپ می‌شود؛ همان مقدار را اینجا قرار دهید.
+// اگر خالی بماند، اپ به‌صورت خودکار روی PROXY_URL (اپس‌اسکریپت) یا در نهایت
+// GEMINI_API_KEY (تماس مستقیم) بازمی‌گردد — به ترتیب اولویت در SmartMechanicApp.
+val firebaseFunctionBaseUrl: String = System.getenv("FIREBASE_FUNCTION_BASE_URL")
+    ?: localProperties.getProperty("FIREBASE_FUNCTION_BASE_URL", "")
+
 android {
     namespace = "com.smartmechanic.ai"
     compileSdk = 34
@@ -59,6 +67,7 @@ android {
         buildConfigField("String", "GEMINI_MODEL_NAME", "\"gemini-3.6-flash\"")
         buildConfigField("String", "PROXY_URL", "\"$proxyUrl\"")
         buildConfigField("String", "APP_SECRET", "\"$appSecret\"")
+        buildConfigField("String", "FIREBASE_FUNCTION_BASE_URL", "\"$firebaseFunctionBaseUrl\"")
     }
 
     signingConfigs {
