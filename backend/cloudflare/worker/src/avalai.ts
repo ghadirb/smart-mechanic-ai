@@ -53,6 +53,39 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
+/**
+ * AvalAI ممکن است با وجود HTTP 200، خروجی JSON ناقص یا خارج از قرارداد برگرداند.
+ * چنین پاسخی نباید «موفق» ثبت یا هزینه‌اش از کاربر کسر شود؛ handleDiagnose خطا را
+ * می‌گیرد، اعتبار را refund می‌کند و transaction را حذف می‌کند.
+ */
+export function validatedDiagnosisJson(text: string): string {
+  const cleaned = text.trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error("AI_PROVIDER_INVALID_RESPONSE");
+  }
+  if (!parsed || typeof parsed !== "object") throw new Error("AI_PROVIDER_INVALID_RESPONSE");
+  const response = parsed as Record<string, unknown>;
+  const urgency = response.urgency;
+  const validUrgencies = new Set(["NORMAL", "NEEDS_CHECK", "SOON", "SERIOUS", "DANGER"]);
+  if (
+    typeof response.summary !== "string" || !response.summary.trim() ||
+    !Array.isArray(response.possibleCauses) ||
+    !Array.isArray(response.recommendations) ||
+    !Array.isArray(response.followUpQuestions) ||
+    typeof response.mechanicNeeded !== "boolean" ||
+    typeof urgency !== "string" || !validUrgencies.has(urgency)
+  ) {
+    throw new Error("AI_PROVIDER_INVALID_RESPONSE");
+  }
+  return cleaned;
+}
+
 export async function callAvalAi(env: Env, body: DiagnoseRequestBody): Promise<string> {
   const apiKey = env.AVALAI_API_KEY;
   const model = env.AVALAI_MODEL;
@@ -83,7 +116,7 @@ export async function callAvalAi(env: Env, body: DiagnoseRequestBody): Promise<s
     if (!response.ok) throw new Error(`AI_PROVIDER_HTTP_${response.status}`);
     const text = String(parsed?.choices?.[0]?.message?.content ?? "").trim();
     if (!text) throw new Error("AI_PROVIDER_INVALID_RESPONSE");
-    return text;
+    return validatedDiagnosisJson(text);
   }
 
   // متن، عکس و ویدئو -- هر سه از همان endpoint بومی generateContent گوگل
@@ -110,5 +143,5 @@ export async function callAvalAi(env: Env, body: DiagnoseRequestBody): Promise<s
   if (!response.ok) throw new Error(`AI_PROVIDER_HTTP_${response.status}`);
   const text = String(parsed?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") ?? "").trim();
   if (!text) throw new Error("AI_PROVIDER_INVALID_RESPONSE");
-  return text;
+  return validatedDiagnosisJson(text);
 }
