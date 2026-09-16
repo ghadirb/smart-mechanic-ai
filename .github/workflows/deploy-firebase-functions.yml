@@ -1,5 +1,11 @@
-name: Deploy Firebase Functions
+name: Deploy Firebase Functions (Legacy)
 
+# LEGACY: بک‌اند اصلی پروژه دیگر Firebase نیست، به Cloudflare Workers + D1
+# مهاجرت کرده (رجوع کنید به .github/workflows/deploy-cloudflare-worker.yml و
+# backend/cloudflare/worker/README.md). این workflow فقط برای سازگاری/بازگشت
+# احتمالی نگه داشته شده و دیگر با push خودکار اجرا نمی‌شود -- فقط دستی از تب
+# Actions قابل اجراست.
+#
 # دیپلوی خودکار بک‌اند اعتباری Firebase (backend/firebase/functions).
 # احراز هویت با Workload Identity Federation انجام می‌شود، نه کلید JSON —
 # چون این پروژه ساخت کلید Service Account را با Org Policy مسدود کرده است.
@@ -7,13 +13,6 @@ name: Deploy Firebase Functions
 # backend/firebase/README.md
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/firebase/functions/**"
-      - "backend/firebase/firebase.json"
-      - "backend/firebase/firestore.rules"
-      - ".github/workflows/deploy-firebase-functions.yml"
   workflow_dispatch: {}
 
 permissions:

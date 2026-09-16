@@ -47,6 +47,15 @@ val appSecret: String = System.getenv("APP_SECRET")
 val firebaseFunctionBaseUrl: String = System.getenv("FIREBASE_FUNCTION_BASE_URL")
     ?: localProperties.getProperty("FIREBASE_FUNCTION_BASE_URL", "")
 
+// آدرس Cloudflare Worker بک‌اند اعتباری (برای دیدن نحوه ساخت و دیپلوی، به
+// backend/cloudflare/worker/README.md مراجعه کنید). بعد از «npx wrangler deploy»
+// همان URL چاپ‌شده (مثل https://YOUR-WORKER.workers.dev) را اینجا قرار دهید.
+// این مقدار بالاترین اولویت را دارد؛ اگر خالی بماند، اپ به ترتیب به سراغ
+// FIREBASE_FUNCTION_BASE_URL (legacy)، سپس PROXY_URL و در نهایت GEMINI_API_KEY
+// می‌رود (رجوع کنید به SmartMechanicApp.kt).
+val aiBackendBaseUrl: String = System.getenv("AI_BACKEND_BASE_URL")
+    ?: localProperties.getProperty("AI_BACKEND_BASE_URL", "")
+
 android {
     namespace = "com.smartmechanic.ai"
     compileSdk = 34
@@ -68,6 +77,7 @@ android {
         buildConfigField("String", "PROXY_URL", "\"$proxyUrl\"")
         buildConfigField("String", "APP_SECRET", "\"$appSecret\"")
         buildConfigField("String", "FIREBASE_FUNCTION_BASE_URL", "\"$firebaseFunctionBaseUrl\"")
+        buildConfigField("String", "AI_BACKEND_BASE_URL", "\"$aiBackendBaseUrl\"")
     }
 
     signingConfigs {

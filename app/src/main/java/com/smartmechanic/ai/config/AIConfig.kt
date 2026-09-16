@@ -35,9 +35,18 @@ object AIConfig {
     fun isProxyConfigured(): Boolean = PROXY_URL.isNotBlank()
 
     /**
-     * آدرس Cloud Function بک‌اند اعتباری Firebase (رجوع کنید به backend/firebase).
-     * این بک‌اند بالاترین اولویت را دارد چون تنها گزینه‌ای است که مصرف را به‌ازای
-     * هر کاربر (از طریق Firebase Anonymous Auth) کنترل و در Firestore ثبت می‌کند.
+     * آدرس Cloudflare Worker بک‌اند اعتباری (رجوع کنید به backend/cloudflare/worker).
+     * این بک‌اند بالاترین اولویت را دارد: روی Cloudflare Free اجرا می‌شود (بدون نیاز
+     * به Google Cloud Billing)، هویت هر نصب را با یک توکن اختصاصی که خودش صادر می‌کند
+     * تایید می‌کند، و مصرف اعتبار را به‌صورت اتمیک در Cloudflare D1 کنترل می‌کند.
+     */
+    val BACKEND_URL: String = BuildConfig.AI_BACKEND_BASE_URL
+
+    fun isBackendConfigured(): Boolean = BACKEND_URL.isNotBlank()
+
+    /**
+     * آدرس Cloud Function بک‌اند قدیمی Firebase (رجوع کنید به backend/firebase) --
+     * legacy، دیگر در مسیر اصلی استفاده نمی‌شود اما کد و امکان بازگشت به آن حفظ شده.
      */
     val FUNCTION_BASE_URL: String = BuildConfig.FIREBASE_FUNCTION_BASE_URL
 

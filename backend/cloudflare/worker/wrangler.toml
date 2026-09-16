@@ -1,0 +1,8 @@
+name = "smart-mechanic-ai"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "smart-mechanic-ai-db"
+database_id = "8207b4d6-f595-46c1-9414-f1777a87e446"

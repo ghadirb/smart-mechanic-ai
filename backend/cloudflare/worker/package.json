@@ -1,0 +1,22 @@
+{
+  "name": "smart-mechanic-cloudflare-worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply smart-mechanic-ai-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply smart-mechanic-ai-db --remote",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260915.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.131.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260915.1": true
+  }
+}

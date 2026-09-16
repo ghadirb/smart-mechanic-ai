@@ -20,7 +20,8 @@
 | Async | Kotlin Coroutines / Flow |
 | شبکه | Retrofit + OkHttp |
 | دیتابیس محلی | Room |
-| مدل AI | Google Gemini (`generateContent` API، چندوجهی: متن/عکس/صدا/ویدئو) |
+| بک‌اند اصلی | Cloudflare Workers + D1 (بدون Google Cloud Billing) |
+| مدل AI | AvalAI / Gemini (کلید فقط در Worker، چندوجهی: متن/عکس/صدا/ویدئو) |
 | حداقل نسخه اندروید | API 26 (Android 8.0) |
 
 ---
@@ -76,34 +77,33 @@ app/src/main/java/com/smartmechanic/ai/
 مقدار کلید در زمان build از طریق `buildConfigField` به `BuildConfig.GEMINI_API_KEY` تزریق می‌شود
 و در **زمان اجرا در حافظه** خوانده می‌شود، نه به‌صورت رشته ثابت در بایت‌کد قابل‌مشاهده به سادگی.
 
-> 🔒 **نکته امنیتی برای تولید واقعی (Production):** برای امنیت بیشتر پیشنهاد می‌شود کلید API
-> اصلاً در کلاینت قرار نگیرد و به‌جای تماس مستقیم اندروید با Gemini، یک **Backend واسط سبک**
-> (مثلاً Cloud Function) ساخته شود که کلید را نگه دارد و درخواست‌ها را Proxy کند. آدرس این
-> Backend در `AIConfig.BASE_URL` (از طریق `BACKEND_BASE_URL`) قابل تنظیم است — معماری همین
-> الان از این حالت پشتیبانی می‌کند.
+> 🔒 در نسخهٔ تولیدی این پروژه کلید AvalAI **اصلاً در کلاینت قرار نمی‌گیرد**: Worker
+> کلادفلر آن را به‌صورت Secret نگه می‌دارد و Android فقط با `AI_BACKEND_BASE_URL` به Worker
+> وصل می‌شود. کلید Gemini فقط fallback توسعه‌ای است، نه پیش‌نیاز مسیر اصلی.
 
 ### گرفتن Gemini API Key
 از [Google AI Studio](https://aistudio.google.com/app/apikey) یک کلید رایگان بسازید.
 
 ---
 
-## 💳 روش پیشنهادی برای نسخه تجاری: بک‌اند اعتباری Firebase (بسته‌های اشتراک/اعتبار)
+## 💳 روش اصلی نسخه تجاری: Cloudflare Workers + D1
 
-این مسیر بالاترین اولویت را در `SmartMechanicApp.kt` دارد (Firebase > Apps Script > Gemini مستقیم)
-و برخلاف دو روش قبلی، **مصرف هر کاربر را هم کنترل می‌کند** — یعنی زیرساخت لازم برای فروش
-بسته‌های اعتباری (credit_20/50/150) همین‌جاست.
+مسیر اصلی در `SmartMechanicApp.kt` این ترتیب را دارد:
+**Cloudflare > Firebase (legacy) > Apps Script > Gemini مستقیم**. Cloudflare مصرف هر نصب را
+سمت سرور کنترل می‌کند و به Firebase Blaze، Google Cloud Billing، Service Account یا WIF نیاز ندارد.
 
 ### چطور کار می‌کند؟
 ```
-اپ اندروید  →  (Firebase Anonymous Auth: هویت کاربر)  →  Cloud Function  →  AvalAI  →  Gemini
-                                                      (کسر اتمیک اعتبار در Firestore)
+اپ اندروید  →  HTTPS + Bearer token  →  Cloudflare Worker  →  AvalAI / Gemini
+                                         │
+                                         └── Cloudflare D1 (اعتبار و دفتر تراکنش)
 ```
-- هویت کاربر با ورود ناشناس Firebase تایید می‌شود؛ کاربر نیازی به ثبت‌نام ندارد.
-- هر درخواست پیش از تماس با هوش مصنوعی، اعتبار لازم را (طبق جدول پایین) از موجودی کاربر در
-  Firestore کم می‌کند؛ اگر تماس با خطا مواجه شود، اعتبار خودکار برگردانده می‌شود.
-- کلید واقعی AvalAI فقط به‌صورت **Firebase Secret** (نه در کد، نه در APK) نگه‌داری می‌شود.
+- Worker برای هر نصب یک توکن تصادفی ۲۵۶ بیتی صادر می‌کند؛ فقط هش آن در D1 ذخیره می‌شود.
+- هر درخواست پیش از تماس با AI به‌شکل اتمیک از D1 کسر می‌شود و در خطای AvalAI بازگردانده می‌شود.
+- idempotency به‌ازای هر کاربر مانع کسر تکراری اعتبار است؛ Android هرگز نمی‌تواند اعتبار اضافه کند.
+- کلید واقعی AvalAI فقط Cloudflare Worker Secret است، نه در کد، APK یا GitHub.
 
-### هزینه هر عملیات (قابل تغییر در `backend/firebase/functions/src/creditPolicy.ts`)
+### هزینه هر عملیات (قابل تغییر در `backend/cloudflare/worker/src/creditPolicy.ts`)
 | نوع تشخیص | اعتبار مصرفی |
 |---|---:|
 | متن | 1 |
@@ -112,17 +112,17 @@ app/src/main/java/com/smartmechanic/ai/
 | ویدیو | 12 |
 
 ### مراحل راه‌اندازی
-راهنمای کامل (ساخت پروژه Firebase، فعال‌سازی Anonymous Auth و Firestore، تنظیم Secret، و
-`npm run deploy`) در [`backend/firebase/README.md`](backend/firebase/README.md) آمده است.
-پس از دیپلوی، فقط کافی است URL چاپ‌شده را در `local.properties` (یا GitHub Secret برای CI)
-با نام `FIREBASE_FUNCTION_BASE_URL` قرار دهید — نیازی به تغییر کد نیست.
-
-> ⚠️ Cloud Functions تولیدی به طرح **Blaze** (پرداختی، با سطح رایگان سخاوتمندانه) نیاز دارد.
-> پیش از فعال‌سازی، حتماً Budget Alert در Google Cloud Console تنظیم کنید.
+راهنمای دقیق ساخت D1، اجرای migration، تنظیم Secretها، deploy و GitHub Actions در
+[`backend/cloudflare/worker/README.md`](backend/cloudflare/worker/README.md) آمده است. پس از
+deploy، URL Worker را فقط در `local.properties` یا متغیر CI با نام
+`AI_BACKEND_BASE_URL` بگذارید — نیازی به تغییر کد نیست.
 
 > 🛒 **بسته‌های خرید (`credit_20`/`credit_50`/`credit_150`) و تایید پرداخت از طریق Cafe Bazaar/Myket**
-> هنوز نیازمند اتصال حساب توسعه‌دهنده و محصولات واقعی هر فروشگاه هستند — این بخش در
-> `backend/firebase/README.md` به‌عنوان مرحله بعدی مستند شده است.
+> هنوز نیازمند اتصال حساب توسعه‌دهنده و محصولات واقعی هر فروشگاه هستند. endpoint
+> `POST /api/payments/verify` عمداً تا آن زمان `501` برمی‌گرداند؛ افزایش مستقیم اعتبار ممکن نیست.
+
+Firebase فقط به‌عنوان مسیر legacy در [`backend/firebase`](backend/firebase) نگه‌داری شده و دیگر
+workflow خودکار deploy ندارد.
 
 ---
 
@@ -208,11 +208,15 @@ Google Apps Script برای این حجم استفاده (Web App ساده) کا
 
 ### تنظیم لازم قبل از اولین اجرا
 
-چون کلید API نباید در مخزن باشد، باید آن را به‌عنوان یک **GitHub Secret** تعریف کنید:
+برای build Android، در صورت استفاده از fallback مستقیم Gemini، کلید را به‌عنوان یک **GitHub Secret** تعریف کنید:
 
 1. به مخزن در گیت‌هاب بروید → **Settings** → **Secrets and variables** → **Actions**
 2. روی **New repository secret** بزنید.
 3. نام: `GEMINI_API_KEY` — مقدار: کلید Gemini خودتان.
+
+برای deploy Worker نیز `CLOUDFLARE_API_TOKEN` و `CLOUDFLARE_ACCOUNT_ID` را در همان بخش Secrets
+قرار دهید. `AVALAI_API_KEY` و `AVALAI_MODEL` را **در GitHub نگذارید**؛ آن‌ها فقط Cloudflare Worker
+Secrets هستند. جزئیات در راهنمای Worker آمده است.
 
 بعد از آن، هر بار که به `main` پوش کنید (یا از تب **Actions** دکمه **Run workflow** را بزنید)،
 بیلد به‌صورت خودکار اجرا می‌شود و می‌توانید APK را از بخش **Artifacts** همان اجرا دانلود کنید.
@@ -251,8 +255,8 @@ Google Apps Script برای این حجم استفاده (Web App ساده) کا
 
 ## 🔑 API Keyهای مورد نیاز
 
-- **Gemini API Key** (اجباری) — از Google AI Studio.
-- در صورت افزودن Backend واسط در آینده، کلید فقط سمت سرور لازم است و کلاینت نیازی به کلید ندارد.
+- **AvalAI API Key** برای مسیر اصلی — فقط Cloudflare Worker Secret است.
+- **Gemini API Key** فقط در صورت فعال‌کردن fallback مستقیم لازم است.
 
 ## 💰 برآورد تقریبی هزینه
 

@@ -1,11 +1,11 @@
 package com.smartmechanic.ai
 
 import android.app.Application
-import com.smartmechanic.ai.auth.FirebaseSession
 import com.smartmechanic.ai.config.AIConfig
 import com.smartmechanic.ai.data.local.AppDatabase
 import com.smartmechanic.ai.data.repository.AIService
 import com.smartmechanic.ai.data.repository.CarRepository
+import com.smartmechanic.ai.data.repository.CloudflareAIService
 import com.smartmechanic.ai.data.repository.DiagnosisRepository
 import com.smartmechanic.ai.data.repository.FirebaseAIService
 import com.smartmechanic.ai.data.repository.GeminiAIService
@@ -28,11 +28,12 @@ class SmartMechanicApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        FirebaseSession.ensureSignedIn()
         database = AppDatabase.getInstance(this)
         carRepository = CarRepository(database.carDao())
         diagnosisRepository = DiagnosisRepository(database.diagnosisDao())
+        // اولویت: Cloudflare (اصلی، Free) > Firebase (legacy) > Apps Script > Gemini مستقیم.
         aiService = when {
+            AIConfig.isBackendConfigured() -> CloudflareAIService(applicationContext)
             AIConfig.isFirebaseBackendConfigured() -> FirebaseAIService(applicationContext)
             AIConfig.isProxyConfigured() -> ProxyAIService(applicationContext)
             else -> GeminiAIService(applicationContext)
