@@ -56,6 +56,12 @@ val firebaseFunctionBaseUrl: String = System.getenv("FIREBASE_FUNCTION_BASE_URL"
 val aiBackendBaseUrl: String = System.getenv("AI_BACKEND_BASE_URL")
     ?: localProperties.getProperty("AI_BACKEND_BASE_URL", "")
 
+// کلید RSA عمومی برنامه از پنل مایکت. این کلید مجوز افزایش اعتبار نیست؛
+// فقط SDK مایکت را قادر به بررسی امضای پاسخ خرید در کلاینت می‌کند. توکن
+// server-to-server مایکت فقط در Cloudflare Worker Secret قرار دارد.
+val myketIabPublicKey: String = System.getenv("MYKET_IAB_PUBLIC_KEY")
+    ?: localProperties.getProperty("MYKET_IAB_PUBLIC_KEY", "")
+
 android {
     namespace = "com.smartmechanic.ai"
     compileSdk = 34
@@ -78,6 +84,12 @@ android {
         buildConfigField("String", "APP_SECRET", "\"$appSecret\"")
         buildConfigField("String", "FIREBASE_FUNCTION_BASE_URL", "\"$firebaseFunctionBaseUrl\"")
         buildConfigField("String", "AI_BACKEND_BASE_URL", "\"$aiBackendBaseUrl\"")
+        buildConfigField("String", "MYKET_IAB_PUBLIC_KEY", "\"$myketIabPublicKey\"")
+        val marketApplicationId = "ir.mservices.market"
+        val marketBindAddress = "ir.mservices.market.InAppBillingService.BIND"
+        manifestPlaceholders["marketApplicationId"] = marketApplicationId
+        manifestPlaceholders["marketBindAddress"] = marketBindAddress
+        manifestPlaceholders["marketPermission"] = "$marketApplicationId.BILLING"
     }
 
     signingConfigs {
@@ -150,6 +162,10 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // SDK رسمی مایکت برای محصولات مصرف‌شدنی اعتبار. تحویل اعتبار فقط بعد از
+    // تایید server-to-server در Cloudflare انجام می‌شود.
+    implementation("com.github.myketstore:myket-billing-client:1.19")
 
     // Room
     implementation("androidx.room:room-runtime:2.8.4")

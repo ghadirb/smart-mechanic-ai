@@ -25,3 +25,29 @@ data class CloudflareDiagnoseResponse(
     @SerializedName("error") val error: String? = null,
     @SerializedName("creditsCharged") val creditsCharged: Int? = null
 )
+
+data class CreditPackageDto(
+    @SerializedName("productId") val productId: String,
+    @SerializedName("credits") val credits: Int
+)
+
+data class CreditsResponse(
+    @SerializedName("balance") val balance: Int,
+    @SerializedName("packages") val packages: List<CreditPackageDto> = emptyList(),
+    @SerializedName("costs") val costs: Map<String, Int> = emptyMap()
+)
+
+/** پاسخ POST /api/payments/intent -- پیش از فراخوانی SDK مایکت گرفته می‌شود. */
+data class PaymentIntentResponse(
+    @SerializedName("productId") val productId: String,
+    @SerializedName("developerPayload") val developerPayload: String,
+    @SerializedName("expiresInSeconds") val expiresInSeconds: Int = 0
+)
+
+/** پاسخ POST /api/payments/verify -- تایید نهایی server-to-server خرید مایکت. */
+data class PaymentVerifyResponse(
+    @SerializedName("success") val success: Boolean = false,
+    @SerializedName("duplicate") val duplicate: Boolean = false,
+    @SerializedName("creditsGranted") val creditsGranted: Int? = null,
+    @SerializedName("error") val error: String? = null
+)

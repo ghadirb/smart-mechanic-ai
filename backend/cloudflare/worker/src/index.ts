@@ -1,7 +1,7 @@
 import { callAvalAi } from "./avalai";
 import { sha256Hex, bearerToken, generateToken, generateUserId } from "./auth";
 import { corsPreflightResponse, json, withCors } from "./cors";
-import { CREDIT_COST, CREDIT_PACKAGES, INITIAL_FREE_CREDITS } from "./creditPolicy";
+import { CREDIT_COST, CREDIT_PACKAGES, INITIAL_FREE_CREDITS, creditsForProduct } from "./creditPolicy";
 import {
   completeTransaction,
   createUser,
@@ -12,7 +12,12 @@ import {
   refundCredits,
   reserveTransaction,
   touchRateLimit,
+  createPaymentIntent,
+  getPaymentIntent,
+  getGrantedStorePurchase,
+  grantStorePurchase,
 } from "./db";
+import { validatePurchaseBody, verifyMyketPurchase } from "./payments";
 import type { Env } from "./types";
 import { toDiagnoseRequestBody, validateDiagnoseBody } from "./validation";
 
@@ -35,11 +40,41 @@ async function handleCredits(userCredits: number): Promise<Response> {
   return json(200, { balance: userCredits, packages: CREDIT_PACKAGES, costs: CREDIT_COST });
 }
 
-function paymentsVerifyStub(): Response {
-  // طبق طراحی: کلاینت هرگز نمی‌تواند مستقیم credits را افزایش دهد؛ این
-  // endpoint فقط جای‌نگه‌دار است تا بعداً بعد از اتصال به بازار/مایکت واقعی،
-  // افزایش اعتبار همیشه سمت این Worker و پس از تایید رسید خرید انجام شود.
-  return json(501, { error: "NOT_IMPLEMENTED", message: "Purchase verification is not wired to a store yet." });
+async function handlePaymentIntent(env: Env, userId: string, body: unknown): Promise<Response> {
+  const productId = (body as Record<string, unknown> | null)?.productId;
+  if (typeof productId !== "string" || creditsForProduct(productId) == null) return json(400, { error: "INVALID_PRODUCT" });
+  const developerPayload = crypto.randomUUID() + crypto.randomUUID();
+  await createPaymentIntent(env.DB, userId, productId, developerPayload);
+  return json(200, { productId, developerPayload, expiresInSeconds: 900 });
+}
+
+async function handlePaymentVerify(env: Env, userId: string, body: unknown): Promise<Response> {
+  const purchase = validatePurchaseBody(body);
+  if (!purchase) return json(400, { error: "INVALID_PURCHASE" });
+  const intent = await getPaymentIntent(env.DB, purchase.developerPayload);
+  if (!intent || intent.user_id !== userId || intent.expires_at < new Date().toISOString()) return json(400, { error: "INVALID_PURCHASE_INTENT" });
+  const alreadyGranted = await getGrantedStorePurchase(env.DB, purchase.tokenId);
+  if (alreadyGranted) {
+    return alreadyGranted.user_id === userId
+      ? json(200, { success: true, duplicate: true, creditsGranted: alreadyGranted.credits_granted })
+      : json(409, { error: "PURCHASE_ALREADY_CLAIMED" });
+  }
+  try {
+    const verified = await verifyMyketPurchase(env, intent.product_id, purchase.tokenId);
+    if (verified.developerPayload !== purchase.developerPayload) return json(400, { error: "PAYLOAD_MISMATCH" });
+    const credits = creditsForProduct(intent.product_id)!;
+    const granted = await grantStorePurchase(env.DB, { userId, productId: intent.product_id, purchaseToken: purchase.tokenId, credits, purchaseTime: verified.purchaseTime });
+    if (!granted) {
+      const existing = await getGrantedStorePurchase(env.DB, purchase.tokenId);
+      return existing?.user_id === userId
+        ? json(200, { success: true, duplicate: true, creditsGranted: existing.credits_granted })
+        : json(409, { error: "PURCHASE_ALREADY_CLAIMED" });
+    }
+    return json(200, { success: true, creditsGranted: credits });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "MYKET_VERIFICATION_FAILED";
+    return json(502, { error: code });
+  }
 }
 
 async function handleDiagnose(env: Env, userId: string, requestId: string, rawBody: any): Promise<Response> {
@@ -103,8 +138,14 @@ export default {
         return withCors(await handleCredits(user.credits));
       }
 
+      if (request.method === "POST" && url.pathname === "/api/payments/intent") {
+        const body = await request.json().catch(() => null);
+        return withCors(await handlePaymentIntent(env, user.user_id, body));
+      }
+
       if (request.method === "POST" && url.pathname === "/api/payments/verify") {
-        return withCors(paymentsVerifyStub());
+        const body = await request.json().catch(() => null);
+        return withCors(await handlePaymentVerify(env, user.user_id, body));
       }
 
       if (request.method === "POST" && url.pathname === "/api/diagnose") {

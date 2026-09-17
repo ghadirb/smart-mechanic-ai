@@ -88,3 +88,33 @@ export async function refundCredits(db: D1Database, userId: string, amount: numb
   const now = new Date().toISOString();
   await db.prepare("UPDATE users SET credits = credits + ?, updated_at = ? WHERE user_id = ?").bind(amount, now, userId).run();
 }
+
+export async function createPaymentIntent(db: D1Database, userId: string, productId: string, payload: string): Promise<void> {
+  const now = new Date();
+  await db.prepare("INSERT INTO payment_intents (id, user_id, product_id, developer_payload, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+    .bind(crypto.randomUUID(), userId, productId, payload, new Date(now.getTime() + 15 * 60 * 1000).toISOString(), now.toISOString()).run();
+}
+
+export async function getPaymentIntent(db: D1Database, payload: string): Promise<{ user_id: string; product_id: string; expires_at: string } | null> {
+  return await db.prepare("SELECT user_id, product_id, expires_at FROM payment_intents WHERE developer_payload = ?")
+    .bind(payload).first<{ user_id: string; product_id: string; expires_at: string }>();
+}
+
+export async function grantStorePurchase(db: D1Database, params: { userId: string; productId: string; purchaseToken: string; credits: number; purchaseTime: number }): Promise<boolean> {
+  const now = new Date().toISOString();
+  try {
+    await db.batch([
+      db.prepare("INSERT INTO store_purchases (id, user_id, store, product_id, purchase_token, credits_granted, purchase_time, verified_at) VALUES (?, ?, 'myket', ?, ?, ?, ?, ?)")
+        .bind(crypto.randomUUID(), params.userId, params.productId, params.purchaseToken, params.credits, params.purchaseTime, now),
+      db.prepare("UPDATE users SET credits = credits + ?, updated_at = ? WHERE user_id = ?").bind(params.credits, now, params.userId),
+      db.prepare("INSERT INTO credit_transactions (id, user_id, amount, type, request_id, description, response_raw, created_at) VALUES (?, ?, ?, 'credit', ?, ?, NULL, ?)")
+        .bind(crypto.randomUUID(), params.userId, -params.credits, `myket:${params.purchaseToken}`, `myket:${params.productId}`, now),
+    ]);
+    return true;
+  } catch { return false; }
+}
+
+export async function getGrantedStorePurchase(db: D1Database, purchaseToken: string): Promise<{ user_id: string; credits_granted: number } | null> {
+  return await db.prepare("SELECT user_id, credits_granted FROM store_purchases WHERE purchase_token = ?")
+    .bind(purchaseToken).first<{ user_id: string; credits_granted: number }>();
+}

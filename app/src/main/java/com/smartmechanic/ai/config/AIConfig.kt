@@ -44,6 +44,10 @@ object AIConfig {
 
     fun isBackendConfigured(): Boolean = BACKEND_URL.isNotBlank()
 
+    /** کلید عمومی RSA مایکت؛ نبودن آن یعنی خرید محلی عمداً فعال نمی‌شود. */
+    val MYKET_IAB_PUBLIC_KEY: String = BuildConfig.MYKET_IAB_PUBLIC_KEY
+    fun isMyketPurchaseConfigured(): Boolean = MYKET_IAB_PUBLIC_KEY.isNotBlank()
+
     /**
      * آدرس Cloud Function بک‌اند قدیمی Firebase (رجوع کنید به backend/firebase) --
      * legacy، دیگر در مسیر اصلی استفاده نمی‌شود اما کد و امکان بازگشت به آن حفظ شده.

@@ -25,6 +25,8 @@ import com.smartmechanic.ai.ui.screens.diagnosis.video.VideoDiagnosisScreen
 import com.smartmechanic.ai.ui.screens.history.HistoryScreen
 import com.smartmechanic.ai.ui.screens.history.HistoryViewModel
 import com.smartmechanic.ai.ui.screens.home.HomeScreen
+import com.smartmechanic.ai.ui.screens.credits.CreditsScreen
+import com.smartmechanic.ai.ui.screens.credits.CreditsViewModel
 import com.smartmechanic.ai.ui.screens.result.DiagnosisResultScreen
 import com.smartmechanic.ai.ui.theme.SmartMechanicAITheme
 import com.smartmechanic.ai.util.MediaFileFactory
@@ -115,6 +117,11 @@ class MainActivity : ComponentActivity() {
                     composable(Routes.HISTORY) {
                         val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.diagnosisRepository))
                         HistoryScreen(viewModel = vm)
+                    }
+
+                    composable(Routes.CREDITS) {
+                        val vm: CreditsViewModel = viewModel(factory = CreditsViewModel.Factory(app.creditsRepository))
+                        CreditsScreen(viewModel = vm, onBack = { navController.popBackStack() })
                     }
                 }
             }

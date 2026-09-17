@@ -13,6 +13,10 @@ export const CREDIT_PACKAGES = [
   { productId: "credit_150", credits: 150 },
 ] as const;
 
+export function creditsForProduct(productId: string): number | null {
+  return CREDIT_PACKAGES.find((item) => item.productId === productId)?.credits ?? null;
+}
+
 // اعتبار رایگان اولیه‌ای که هر نصب جدید هنگام ثبت‌نام (POST /api/register)
 // دریافت می‌کند تا بدون نیاز به خرید، امکان تست اپ را داشته باشد.
 export const INITIAL_FREE_CREDITS = 5;

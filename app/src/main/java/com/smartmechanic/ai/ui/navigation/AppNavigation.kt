@@ -10,4 +10,5 @@ object Routes {
     const val DIAGNOSE_VIDEO = "diagnose_video"
     const val RESULT = "result"
     const val HISTORY = "history"
+    const val CREDITS = "credits"
 }

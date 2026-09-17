@@ -46,6 +46,7 @@ fun HomeScreen(onNavigate: (String) -> Unit) {
                 HomeButton("🎥 تحلیل ویدئو") { onNavigate(Routes.DIAGNOSE_VIDEO) }
                 HomeButton("🚗 خودروهای من") { onNavigate(Routes.CARS) }
                 HomeButton("📋 سوابق تشخیص") { onNavigate(Routes.HISTORY) }
+                HomeButton("💳 اعتبار و خرید") { onNavigate(Routes.CREDITS) }
             }
         }
     }

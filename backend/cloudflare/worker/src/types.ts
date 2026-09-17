@@ -6,6 +6,7 @@ export interface Env {
   // wrangler.toml قرار نمی‌گیرند -- رجوع کنید به README همین پوشه.
   AVALAI_API_KEY: string;
   AVALAI_MODEL: string;
+  MYKET_ACCESS_TOKEN?: string;
 }
 
 export interface DiagnoseRequestBody {

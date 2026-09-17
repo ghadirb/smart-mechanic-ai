@@ -39,3 +39,8 @@ FIREBASE_FUNCTION_BASE_URL=
 # https://smart-mechanic-ai.YOUR-SUBDOMAIN.workers.dev).
 # -----------------------------------------------------------------------
 AI_BACKEND_BASE_URL=
+
+# کلید RSA عمومی برنامه از پنل توسعه‌دهندگان مایکت (نه X-Access-Token).
+# برای فعال‌شدن دکمهٔ خرید در APK مایکت لازم است. X-Access-Token مایکت فقط
+# باید به Cloudflare Worker Secret با نام MYKET_ACCESS_TOKEN داده شود.
+MYKET_IAB_PUBLIC_KEY=
