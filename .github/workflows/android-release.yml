@@ -26,6 +26,9 @@ jobs:
       VERSION_CODE: ${{ inputs.version_code || github.run_number }}
       VERSION_NAME: ${{ inputs.version_name || github.ref_name }}
       AI_BACKEND_BASE_URL: ${{ vars.AI_BACKEND_BASE_URL }}
+      # کلید RSA عمومی مایکت؛ بدون آن BuildConfig خالی می‌شود و صفحه اعتبار فقط
+      # «خرید اعتبار به‌زودی فعال می‌شود» را نشان می‌دهد.
+      MYKET_IAB_PUBLIC_KEY: ${{ secrets.MYKET_IAB_PUBLIC_KEY }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -52,6 +55,13 @@ jobs:
           test -n "$ANDROID_KEYSTORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
+
+      - name: Validate Myket billing configuration
+        run: |
+          if [ -z "$MYKET_IAB_PUBLIC_KEY" ]; then
+            echo "::error::MYKET_IAB_PUBLIC_KEY is empty - this release would ship with purchases disabled."
+            exit 1
+          fi
 
       - name: Build signed APK and AAB
         run: ./gradlew assembleRelease bundleRelease --stacktrace

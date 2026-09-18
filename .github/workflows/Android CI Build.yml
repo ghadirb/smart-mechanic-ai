@@ -16,6 +16,7 @@ jobs:
     # بداند (local.properties در runner گیت‌هاب وجود ندارد).
     env:
       AI_BACKEND_BASE_URL: ${{ vars.AI_BACKEND_BASE_URL }}
+      MYKET_IAB_PUBLIC_KEY: ${{ secrets.MYKET_IAB_PUBLIC_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
