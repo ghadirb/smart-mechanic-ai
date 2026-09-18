@@ -42,7 +42,7 @@ class CreditsViewModel(
     fun refresh() = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
         repository.load().onSuccess { _state.value = _state.value.copy(loading = false, balance = it.balance, packages = it.packages) }
-            .onFailure { _state.value = _state.value.copy(loading = false, error = "دریافت موجودی ممکن نشد. اتصال اینترنت را بررسی کنید.") }
+            .onFailure { error -> _state.value = _state.value.copy(loading = false, error = repository.userFriendlyLoadError(error)) }
     }
 
     fun applyStorePrices(prices: Map<String, String>) {

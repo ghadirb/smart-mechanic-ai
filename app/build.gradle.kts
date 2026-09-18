@@ -53,8 +53,14 @@ val firebaseFunctionBaseUrl: String = System.getenv("FIREBASE_FUNCTION_BASE_URL"
 // این مقدار بالاترین اولویت را دارد؛ اگر خالی بماند، اپ به ترتیب به سراغ
 // FIREBASE_FUNCTION_BASE_URL (legacy)، سپس PROXY_URL و در نهایت GEMINI_API_KEY
 // می‌رود (رجوع کنید به SmartMechanicApp.kt).
+// The Worker endpoint is public rather than a secret. This fallback prevents
+// a production APK from silently losing the credits backend if a CI variable
+// is unavailable or mis-scoped.
 val aiBackendBaseUrl: String = System.getenv("AI_BACKEND_BASE_URL")
-    ?: localProperties.getProperty("AI_BACKEND_BASE_URL", "")
+    .takeUnless { it.isNullOrBlank() }
+    ?: localProperties.getProperty("AI_BACKEND_BASE_URL")
+        .takeUnless { it.isNullOrBlank() }
+    ?: "https://smart-mechanic-ai.ghadir-baraty.workers.dev"
 
 // کلید RSA عمومی برنامه از پنل مایکت. این کلید مجوز افزایش اعتبار نیست؛
 // فقط SDK مایکت را قادر به بررسی امضای پاسخ خرید در کلاینت می‌کند. توکن

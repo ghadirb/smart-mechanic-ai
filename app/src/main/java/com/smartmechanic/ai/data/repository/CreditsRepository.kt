@@ -34,6 +34,14 @@ class CreditsRepository(private val context: Context) {
         }
     }
 
+    fun userFriendlyLoadError(error: Throwable): String = when (error.message) {
+        "BACKEND_NOT_CONFIGURED" -> "تنظیمات سرور اعتبار در این نسخه وجود ندارد. نسخه جدید را نصب کنید."
+        "REGISTER_FAILED" -> "ارتباط با سرور اعتبار برقرار نشد. چند لحظه بعد دوباره تلاش کنید."
+        "HTTP_401" -> "نشست اعتبار منقضی شده است. برنامه را یک‌بار کامل ببندید و دوباره باز کنید."
+        "HTTP_429" -> "تعداد تلاش‌ها زیاد بوده است. حدود یک دقیقه بعد دوباره تلاش کنید."
+        else -> "دریافت موجودی ممکن نشد. اتصال اینترنت و دسترسی به سرور را بررسی کنید."
+    }
+
     /** تاریخچهٔ اعتبار صفحه‌بندی‌شده -- فقط ستون‌های امن برای نمایش (هرگز response_raw ندارد). */
     suspend fun loadHistory(before: String? = null, limit: Int = 20): Result<CreditHistoryResponse> = withContext(Dispatchers.IO) {
         if (!AIConfig.isBackendConfigured()) return@withContext Result.failure(IllegalStateException("BACKEND_NOT_CONFIGURED"))
