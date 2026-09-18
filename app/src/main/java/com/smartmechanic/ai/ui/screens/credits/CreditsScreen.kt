@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -107,12 +108,19 @@ fun CreditsScreen(viewModel: CreditsViewModel, onBack: () -> Unit) {
                 }
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = viewModel::refresh, modifier = Modifier.weight(1f)) { Text("به‌روزرسانی موجودی") }
+            // ارتفاع هر دو دکمه یکسان می‌ماند، حتی اگر برچسب یکی روی گوشی‌های کوچک دو خطی شود.
+            Row(
+                Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = viewModel::refresh,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                ) { Text("به‌روزرسانی", textAlign = TextAlign.Center) }
                 OutlinedButton(
                     onClick = { showHistory = true; viewModel.loadHistory() },
-                    modifier = Modifier.weight(1f)
-                ) { Text("تاریخچه") }
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                ) { Text("تاریخچه تراکنش‌ها", textAlign = TextAlign.Center) }
             }
         }
     }
