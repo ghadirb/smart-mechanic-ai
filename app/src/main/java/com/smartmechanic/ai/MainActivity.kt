@@ -120,7 +120,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(Routes.CREDITS) {
-                        val vm: CreditsViewModel = viewModel(factory = CreditsViewModel.Factory(app.creditsRepository))
+                        val vm: CreditsViewModel = viewModel(factory = CreditsViewModel.Factory(app.creditsRepository, app.pendingPurchases))
                         CreditsScreen(viewModel = vm, onBack = { navController.popBackStack() })
                     }
                 }

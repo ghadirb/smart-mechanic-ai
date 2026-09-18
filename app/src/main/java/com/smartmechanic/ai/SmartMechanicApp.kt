@@ -1,6 +1,7 @@
 package com.smartmechanic.ai
 
 import android.app.Application
+import com.smartmechanic.ai.billing.PendingPurchaseStore
 import com.smartmechanic.ai.config.AIConfig
 import com.smartmechanic.ai.data.local.AppDatabase
 import com.smartmechanic.ai.data.repository.AIService
@@ -26,6 +27,8 @@ class SmartMechanicApp : Application() {
         private set
     lateinit var creditsRepository: CreditsRepository
         private set
+    lateinit var pendingPurchases: PendingPurchaseStore
+        private set
     lateinit var aiService: AIService
         private set
 
@@ -35,6 +38,7 @@ class SmartMechanicApp : Application() {
         carRepository = CarRepository(database.carDao())
         diagnosisRepository = DiagnosisRepository(database.diagnosisDao())
         creditsRepository = CreditsRepository(applicationContext)
+        pendingPurchases = PendingPurchaseStore(applicationContext)
         // اولویت: Cloudflare (اصلی، Free) > Firebase (legacy) > Apps Script > Gemini مستقیم.
         aiService = when {
             AIConfig.isBackendConfigured() -> CloudflareAIService(applicationContext)

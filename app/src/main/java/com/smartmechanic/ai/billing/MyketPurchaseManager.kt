@@ -66,6 +66,42 @@ class MyketPurchaseManager(private val activity: Activity, publicKey: String) {
         }
     }
 
+    /**
+     * قیمت واقعی هر SKU را از خود مایکت می‌گیرد (نه یک عدد hard-code شده در اپ). اگر SDK به هر دلیلی قیمت را برنگرداند (مایکت نصب نیست، خطای شبکه)،
+     * نقشهٔ خالی برمی‌گردد و UI باید قیمت جعلی/تخمینی نشان ندهد -- فقط نام و
+     * تعداد اعتبار بسته را نشان بدهد.
+     */
+    fun queryPrices(productIds: List<String>, onResult: (Map<String, String>) -> Unit) {
+        if (disposed) {
+            onResult(emptyMap())
+            return
+        }
+
+        fun query() {
+            helper.queryInventoryAsync(true, productIds) { result, inventory ->
+                if (!result.isSuccess || inventory == null) {
+                    onResult(emptyMap())
+                } else {
+                    onResult(productIds.mapNotNull { sku -> inventory.getSkuDetails(sku)?.price?.let { sku to it } }.toMap())
+                }
+            }
+        }
+
+        if (setupDone) {
+            query()
+            return
+        }
+        helper.startSetup { result ->
+            if (disposed) return@startSetup
+            if (result.isSuccess) {
+                setupDone = true
+                query()
+            } else {
+                onResult(emptyMap())
+            }
+        }
+    }
+
     fun dispose() {
         disposed = true
         runCatching { helper.dispose() }

@@ -51,3 +51,18 @@ data class PaymentVerifyResponse(
     @SerializedName("creditsGranted") val creditsGranted: Int? = null,
     @SerializedName("error") val error: String? = null
 )
+
+/** یک ردیف از GET /api/credits/history -- هرگز response_raw ندارد. */
+data class CreditHistoryItem(
+    @SerializedName("id") val id: String,
+    @SerializedName("type") val type: String,
+    @SerializedName("amount") val amount: Int,
+    @SerializedName("description") val description: String?,
+    @SerializedName("createdAt") val createdAt: String,
+    @SerializedName("requestId") val requestId: String?
+)
+
+data class CreditHistoryResponse(
+    @SerializedName("items") val items: List<CreditHistoryItem> = emptyList(),
+    @SerializedName("nextCursor") val nextCursor: String? = null
+)

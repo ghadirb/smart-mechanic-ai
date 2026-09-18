@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.smartmechanic.ai.auth.BackendSession
 import com.smartmechanic.ai.config.AIConfig
+import com.smartmechanic.ai.data.remote.CreditHistoryResponse
 import com.smartmechanic.ai.data.remote.CreditsResponse
 import com.smartmechanic.ai.data.remote.PaymentIntentResponse
 import com.smartmechanic.ai.data.remote.PaymentVerifyResponse
@@ -29,6 +30,26 @@ class CreditsRepository(private val context: Context) {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("HTTP_${response.code}")
                 gson.fromJson(response.body?.string(), CreditsResponse::class.java)
+            }
+        }
+    }
+
+    /** تاریخچهٔ اعتبار صفحه‌بندی‌شده -- فقط ستون‌های امن برای نمایش (هرگز response_raw ندارد). */
+    suspend fun loadHistory(before: String? = null, limit: Int = 20): Result<CreditHistoryResponse> = withContext(Dispatchers.IO) {
+        if (!AIConfig.isBackendConfigured()) return@withContext Result.failure(IllegalStateException("BACKEND_NOT_CONFIGURED"))
+        val token = session.currentToken() ?: return@withContext Result.failure(IllegalStateException("REGISTER_FAILED"))
+        runCatching {
+            val query = buildString {
+                append("limit=").append(limit)
+                if (!before.isNullOrBlank()) append("&before=").append(java.net.URLEncoder.encode(before, "UTF-8"))
+            }
+            val request = Request.Builder()
+                .url(AIConfig.BACKEND_URL.trimEnd('/') + "/api/credits/history?" + query)
+                .header("Authorization", "Bearer $token")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("HTTP_${response.code}")
+                gson.fromJson(response.body?.string(), CreditHistoryResponse::class.java)
             }
         }
     }

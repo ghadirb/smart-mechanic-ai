@@ -167,6 +167,10 @@ dependencies {
     // تایید server-to-server در Cloudflare انجام می‌شود.
     implementation("com.github.myketstore:myket-billing-client:1.19")
 
+    // ذخیره‌سازی رمزنگاری‌شدهٔ توکن نشست (BackendSession) روی Android Keystore --
+    // به‌جای SharedPreferences ساده.
+    implementation("androidx.security:security-crypto:1.1.0")
+
     // Room
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")

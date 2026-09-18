@@ -22,7 +22,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
-import java.util.UUID
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
@@ -104,12 +104,19 @@ class CloudflareAIService(
             ?: return AppResult.Error(AppError.ApiError(code = 401, apiMessage = "REGISTER_FAILED"))
 
         val bodyJson = gson.toJson(request)
+        // کلید idempotency باید برای «همان تلاش منطقی» ثابت بماند، نه برای هر
+        // HTTP attempt. اگر پاسخ Worker به دلیل قطع اینترنت/timeout به اپ
+        // نرسد ولی اعتبار قبلاً کسر و AI اجرا شده باشد، و کاربر دوباره دکمهٔ
+        // «ارسال برای تحلیل» را با همان فایل/متن/خودرو بزند، باید همان کلید
+        // تولید شود تا Worker آن را idempotent replay کند، نه یک کسر جدید.
+        // هش SHA-256 بدنهٔ دقیق درخواست همین را تضمین می‌کند بدون نیاز به نگه‌داشتن
+        // state اضافه بین تلاش‌ها؛ اگر کاربر واقعاً چیزی را عوض کند (فایل/متن/خودرو)،
+        // بدنه فرق می‌کند و کلید هم به‌طور طبیعی جدید می‌شود.
+        val idempotencyKey = stableIdempotencyKey(bodyJson)
         val httpRequest = Request.Builder()
             .url(AIConfig.BACKEND_URL.trimEnd('/') + "/api/diagnose")
             .header("Authorization", "Bearer $token")
-            // هر تلاش مجدد (retry) شبکه یک کلید یکتای جدید می‌گیرد؛ سرور از این کلید
-            // برای جلوگیری از کسر دوباره‌ی اعتبار در صورت تکرار همان درخواست استفاده می‌کند.
-            .header("X-Idempotency-Key", UUID.randomUUID().toString() + UUID.randomUUID().toString())
+            .header("X-Idempotency-Key", idempotencyKey)
             .post(bodyJson.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
@@ -149,5 +156,10 @@ class CloudflareAIService(
         } catch (e: Exception) {
             AppResult.Error(AppError.Unknown(e))
         }
+    }
+
+    private fun stableIdempotencyKey(bodyJson: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(bodyJson.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

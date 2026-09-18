@@ -24,6 +24,7 @@ export interface UserRow {
   user_id: string;
   token_hash: string;
   credits: number;
+  device_hash: string | null;
   last_request_at: string | null;
   created_at: string;
   updated_at: string;
@@ -38,4 +39,13 @@ export interface TransactionRow {
   description: string | null;
   response_raw: string | null;
   created_at: string;
+}
+
+export interface TransactionHistoryItem {
+  id: string;
+  type: string;
+  amount: number;
+  description: string | null;
+  created_at: string;
+  request_id: string;
 }
