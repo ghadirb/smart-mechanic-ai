@@ -2,6 +2,8 @@ package com.smartmechanic.ai.ui.screens.credits
 
 import android.app.Activity
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -9,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -60,7 +61,10 @@ fun CreditsScreen(viewModel: CreditsViewModel, onBack: () -> Unit) {
     }
 
     Scaffold(topBar = { TopAppBar(title = { Text("اعتبار و خرید") }, navigationIcon = { TextButton(onClick = onBack) { Text("بازگشت") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("اعتبار قابل استفاده", style = MaterialTheme.typography.titleMedium)
@@ -101,14 +105,6 @@ fun CreditsScreen(viewModel: CreditsViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
-            }
-
-            if (purchaseManager == null) {
-                Text(
-                    "خرید مایکت پس از قرار دادن کلید RSA عمومی برنامه (از پنل توسعه‌دهندگان مایکت، در MYKET_IAB_PUBLIC_KEY) فعال می‌شود.",
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
