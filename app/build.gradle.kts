@@ -131,7 +131,11 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
+            // The credits path uses Android security/network libraries and is
+            // proven to work in debug. Keep the publish build non-minified
+            // until explicit release-device coverage validates R8 rules.
+            // A signed, non-minified APK/AAB is fully valid for Myket.
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
