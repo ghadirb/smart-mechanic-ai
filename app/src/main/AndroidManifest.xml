@@ -4,6 +4,9 @@
     <!-- برای ارتباط با سرویس AI -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- سرویس پرداخت درون‌برنامه‌ای مایکت؛ مقدار آن در Gradle به‌صورت placeholder
+         تنظیم می‌شود تا نام بسته در یک محل مرکزی نگه‌داری شود. -->
+    <uses-permission android:name="${marketPermission}" />
 
     <!-- برای گرفتن عکس / ضبط ویدئو -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -31,6 +34,7 @@
         این دقیقاً همان مشکلی است که با دوربین پیش‌فرض خراب/غیرفعال رخ می‌دهد.
     -->
     <queries>
+        <package android:name="${marketApplicationId}" />
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
