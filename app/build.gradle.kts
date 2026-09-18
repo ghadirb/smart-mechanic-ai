@@ -62,6 +62,23 @@ val aiBackendBaseUrl: String = System.getenv("AI_BACKEND_BASE_URL")
 val myketIabPublicKey: String = System.getenv("MYKET_IAB_PUBLIC_KEY")
     ?: localProperties.getProperty("MYKET_IAB_PUBLIC_KEY", "")
 
+val signingProperties = Properties().apply {
+    val signingFile = rootProject.file("keystore.properties")
+    if (signingFile.exists()) load(FileInputStream(signingFile))
+}
+
+fun signingValue(environmentName: String, propertyName: String): String =
+    System.getenv(environmentName) ?: signingProperties.getProperty(propertyName, "")
+
+val releaseStoreFile = signingValue("ANDROID_KEYSTORE_PATH", "storeFile")
+val releaseStorePassword = signingValue("ANDROID_KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyAlias = signingValue("ANDROID_KEY_ALIAS", "keyAlias")
+val releaseKeyPassword = signingValue("ANDROID_KEY_PASSWORD", "keyPassword")
+val releaseVersionCode = (System.getenv("VERSION_CODE")
+    ?: localProperties.getProperty("VERSION_CODE", "1")).toInt()
+val releaseVersionName = System.getenv("VERSION_NAME")
+    ?: localProperties.getProperty("VERSION_NAME", "0.1.0-mvp")
+
 android {
     namespace = "com.smartmechanic.ai"
     compileSdk = 34
@@ -70,8 +87,8 @@ android {
         applicationId = "com.smartmechanic.ai"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-mvp"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -93,12 +110,21 @@ android {
     }
 
     signingConfigs {
+        create("release") {
+            if (releaseStoreFile.isNotBlank()) {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
         // در نسخه انتشار واقعی، امضای اپ باید از طریق Keystore امن و
         // متغیرهای محیطی CI انجام شود، نه فایل‌های commit‌شده.
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
