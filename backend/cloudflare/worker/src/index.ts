@@ -29,11 +29,12 @@ import { toDiagnoseRequestBody, validateDiagnoseBody } from "./validation";
 // Rate Limiting Rules هم می‌توان در کنار این استفاده کرد (رجوع کنید به README).
 const MIN_REQUEST_GAP_MS = 1500;
 
-// حداقل فاصله بین دو تلاش register پیاپی از همان دستگاه (نه همان کاربر --
-// چون register هنوز کاربری ندارد). فقط جلوی اسپم گرفتن register را می‌گیرد؛
-// ربطی به این ندارد که آیا اعتبار رایگان دوباره داده می‌شود یا نه (آن را
-// claimDeviceRegistration جدا تصمیم می‌گیرد).
-const MIN_REGISTER_GAP_MS = 30_000;
+// Register must remain available after an app reinstall or an interrupted
+// first launch. Duplicate free credits are already prevented independently by
+// device_registrations, so throttling this endpoint can only strand a valid
+// installation without a session. Edge-level rate limiting can still protect
+// against abusive traffic without blocking normal recovery.
+const MIN_REGISTER_GAP_MS = 0;
 
 // یک تراکنش «رزرو» (response_raw = NULL) که از این مقدار قدیمی‌تر باشد یعنی
 // به‌احتمال زیاد Worker قبلی قبل از رسیدن به completeTransaction/refund از کار
