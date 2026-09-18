@@ -78,7 +78,10 @@ fun CreditsScreen(viewModel: CreditsViewModel, onBack: () -> Unit) {
             state.purchaseMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
             Text("افزایش اعتبار", style = MaterialTheme.typography.titleMedium)
-            state.packages.forEach { item ->
+            val configuredPurchaseManager = purchaseManager
+            if (configuredPurchaseManager == null) {
+                Text("خرید اعتبار به‌زودی فعال می‌شود.")
+            } else state.packages.forEach { item ->
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
@@ -91,12 +94,11 @@ fun CreditsScreen(viewModel: CreditsViewModel, onBack: () -> Unit) {
                         }
                         Button(
                             onClick = {
-                                val manager = purchaseManager ?: return@Button
                                 viewModel.purchase(item.productId) { developerPayload, onPurchaseResult ->
-                                    manager.launchPurchase(item.productId, developerPayload, onPurchaseResult)
+                                    configuredPurchaseManager.launchPurchase(item.productId, developerPayload, onPurchaseResult)
                                 }
                             },
-                            enabled = purchaseManager != null && state.purchasingProductId == null
+                            enabled = state.purchasingProductId == null
                         ) {
                             if (state.purchasingProductId == item.productId) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
