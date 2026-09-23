@@ -119,6 +119,8 @@ class CreditsViewModel(
                 message.contains("Not Installed", ignoreCase = true) ||
                     message.contains("BILLING_UNAVAILABLE", ignoreCase = true) ->
                     "اپلیکیشن مایکت روی این دستگاه نصب نیست یا در دسترس نیست."
+                message.contains("SETUP_TIMEOUT", ignoreCase = true) ->
+                    "ارتباط با مایکت برقرار نشد. مایکت را باز کنید، اینترنت را بررسی کنید و دوباره تلاش کنید."
                 message.contains("User Canceled", ignoreCase = true) ||
                     message.contains("USER_CANCELLED", ignoreCase = true) -> null // کاربر خودش لغو کرده، نیازی به پیام خطا نیست
                 else -> "خرید انجام نشد. دوباره تلاش کنید."

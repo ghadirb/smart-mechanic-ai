@@ -1,6 +1,9 @@
 package com.smartmechanic.ai.billing
 
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import ir.myket.billingclient.IabHelper
 
 /**
@@ -16,11 +19,87 @@ import ir.myket.billingclient.IabHelper
  * یک Activity زنده لازم دارد؛ CreditsScreen آن را با remember/DisposableEffect
  * نگه می‌دارد و در dispose() آزاد می‌کند.
  */
-class MyketPurchaseManager(private val activity: Activity, publicKey: String) {
+class MyketPurchaseManager(private val activity: Activity, private val publicKey: String) {
 
-    private val helper = IabHelper(activity, publicKey)
-    private var setupDone = false
+    private enum class SetupState { IDLE, SETTING_UP, READY }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var helper = IabHelper(activity, publicKey)
+    private var state = SetupState.IDLE
+    private var generation = 0
     private var disposed = false
+    private var queryInFlight = false
+    private val setupWaiters = mutableListOf<(ok: Boolean, message: String) -> Unit>()
+    private val timeoutRunnable = Runnable { onSetupTimeout() }
+
+    /**
+     * ریشه‌ی باگ «IAB helper is already set up»: IabHelper.startSetup همان لحظه‌ی
+     * اولین فراخوانی iabConnection را مقداردهی می‌کند و هر فراخوانی دوم (چه هنوز
+     * در حال اتصال باشد، چه اتصال قبلی شکست خورده باشد) بلافاصله با خطا برمی‌گردد.
+     * قبلاً queryPrices و launchPurchase هر دو مستقیم startSetup را صدا می‌زدند و
+     * خرید همیشه با همین خطا رد می‌شد. حالا فقط یک setup هم‌زمان انجام می‌شود،
+     * بقیه‌ی درخواست‌ها در صف می‌مانند، و بعد از شکست یک IabHelper تازه ساخته
+     * می‌شود تا دوباره بشود تلاش کرد.
+     */
+    private fun ensureSetup(onReady: (ok: Boolean, message: String) -> Unit) {
+        if (disposed) {
+            onReady(false, "PURCHASE_MANAGER_DISPOSED")
+            return
+        }
+        when (state) {
+            SetupState.READY -> onReady(true, "")
+            SetupState.SETTING_UP -> setupWaiters.add(onReady)
+            SetupState.IDLE -> {
+                setupWaiters.add(onReady)
+                state = SetupState.SETTING_UP
+                val myGeneration = ++generation
+                mainHandler.postDelayed(timeoutRunnable, SETUP_TIMEOUT_MS)
+                try {
+                    helper.startSetup { result ->
+                        mainHandler.post {
+                            if (disposed || myGeneration != generation) return@post
+                            mainHandler.removeCallbacks(timeoutRunnable)
+                            Log.i(TAG, "setup finished: success=${result.isSuccess} message=${result.message}")
+                            val myketMissing = result.message.contains("Not Installed", ignoreCase = true)
+                            if (result.isSuccess && !myketMissing) {
+                                state = SetupState.READY
+                                flushWaiters(true, "")
+                            } else {
+                                resetHelper()
+                                flushWaiters(false, result.message)
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.w(TAG, "startSetup threw", t)
+                    mainHandler.removeCallbacks(timeoutRunnable)
+                    resetHelper()
+                    flushWaiters(false, t.message ?: "SETUP_EXCEPTION")
+                }
+            }
+        }
+    }
+
+    private fun onSetupTimeout() {
+        if (disposed || state != SetupState.SETTING_UP) return
+        Log.w(TAG, "setup timed out")
+        resetHelper()
+        flushWaiters(false, "SETUP_TIMEOUT")
+    }
+
+    /** بعد از شکست، IabHelper قابل استفاده‌ی مجدد نیست؛ یکی تازه می‌سازیم. */
+    private fun resetHelper() {
+        generation++ // callbackهای دیررسیده‌ی helper قدیمی نادیده گرفته می‌شوند
+        runCatching { helper.dispose() }
+        helper = IabHelper(activity, publicKey)
+        state = SetupState.IDLE
+    }
+
+    private fun flushWaiters(ok: Boolean, message: String) {
+        val waiters = setupWaiters.toList()
+        setupWaiters.clear()
+        waiters.forEach { it(ok, message) }
+    }
 
     /**
      * @param productId شناسه محصول مایکت (مثلاً credit_20)
@@ -33,35 +112,25 @@ class MyketPurchaseManager(private val activity: Activity, publicKey: String) {
         developerPayload: String,
         onResult: (success: Boolean, purchaseToken: String?, message: String) -> Unit
     ) {
-        if (disposed) {
-            onResult(false, null, "PURCHASE_MANAGER_DISPOSED")
-            return
-        }
-
-        fun launch() {
+        ensureSetup { ok, message ->
+            if (!ok) {
+                onResult(false, null, message)
+                return@ensureSetup
+            }
             val listener = IabHelper.OnIabPurchaseFinishedListener { result, purchase ->
                 val token = purchase?.token
+                Log.i(TAG, "purchase finished: success=${result.isSuccess} message=${result.message}")
                 if (result.isSuccess && !token.isNullOrBlank()) {
                     onResult(true, token, result.message)
                 } else {
                     onResult(false, null, result.message)
                 }
             }
-            helper.launchPurchaseFlow(activity, productId, listener, developerPayload)
-        }
-
-        if (setupDone) {
-            launch()
-            return
-        }
-
-        helper.startSetup { result ->
-            if (disposed) return@startSetup
-            if (result.isSuccess) {
-                setupDone = true
-                launch()
-            } else {
-                onResult(false, null, result.message)
+            try {
+                helper.launchPurchaseFlow(activity, productId, listener, developerPayload)
+            } catch (t: Throwable) {
+                Log.w(TAG, "launchPurchaseFlow threw", t)
+                onResult(false, null, t.message ?: "LAUNCH_EXCEPTION")
             }
         }
     }
@@ -72,31 +141,30 @@ class MyketPurchaseManager(private val activity: Activity, publicKey: String) {
      * تعداد اعتبار بسته را نشان بدهد.
      */
     fun queryPrices(productIds: List<String>, onResult: (Map<String, String>) -> Unit) {
-        if (disposed) {
-            onResult(emptyMap())
+        if (disposed || queryInFlight) {
+            // درخواست قیمت هم‌زمان دیگری در جریان است؛ نتیجه‌ی همان به UI می‌رسد.
+            if (disposed) onResult(emptyMap())
             return
         }
-
-        fun query() {
-            helper.queryInventoryAsync(true, productIds) { result, inventory ->
-                if (!result.isSuccess || inventory == null) {
-                    onResult(emptyMap())
-                } else {
-                    onResult(productIds.mapNotNull { sku -> inventory.getSkuDetails(sku)?.price?.let { sku to it } }.toMap())
-                }
+        queryInFlight = true
+        ensureSetup { ok, _ ->
+            if (!ok) {
+                queryInFlight = false
+                onResult(emptyMap())
+                return@ensureSetup
             }
-        }
-
-        if (setupDone) {
-            query()
-            return
-        }
-        helper.startSetup { result ->
-            if (disposed) return@startSetup
-            if (result.isSuccess) {
-                setupDone = true
-                query()
-            } else {
+            try {
+                helper.queryInventoryAsync(true, productIds) { result, inventory ->
+                    queryInFlight = false
+                    if (disposed || !result.isSuccess || inventory == null) {
+                        onResult(emptyMap())
+                    } else {
+                        onResult(productIds.mapNotNull { sku -> inventory.getSkuDetails(sku)?.price?.let { sku to it } }.toMap())
+                    }
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "queryInventoryAsync threw", t)
+                queryInFlight = false
                 onResult(emptyMap())
             }
         }
@@ -104,6 +172,13 @@ class MyketPurchaseManager(private val activity: Activity, publicKey: String) {
 
     fun dispose() {
         disposed = true
+        mainHandler.removeCallbacks(timeoutRunnable)
+        setupWaiters.clear()
         runCatching { helper.dispose() }
+    }
+
+    private companion object {
+        const val TAG = "MyketPurchase"
+        const val SETUP_TIMEOUT_MS = 15_000L
     }
 }
