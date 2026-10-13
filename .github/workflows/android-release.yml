@@ -71,14 +71,14 @@ jobs:
         with:
           name: smart-mechanic-ai-${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/*.apk
-          retention-days: 90
+          retention-days: 1
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: smart-mechanic-ai-${{ env.VERSION_NAME }}-aab
           path: app/build/outputs/bundle/release/*.aab
-          retention-days: 90
+          retention-days: 1
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
